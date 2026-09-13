@@ -14,13 +14,336 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      author_directions: {
+        Row: {
+          body: string
+          chapter_id: string | null
+          confirmed: boolean
+          created_at: string
+          id: string
+          is_inferred: boolean
+          kind: string
+          project_id: string
+          scene_id: string | null
+          scope: string
+          status: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          chapter_id?: string | null
+          confirmed?: boolean
+          created_at?: string
+          id?: string
+          is_inferred?: boolean
+          kind?: string
+          project_id: string
+          scene_id?: string | null
+          scope?: string
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          chapter_id?: string | null
+          confirmed?: boolean
+          created_at?: string
+          id?: string
+          is_inferred?: boolean
+          kind?: string
+          project_id?: string
+          scene_id?: string | null
+          scope?: string
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_directions_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_directions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_directions_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chapters: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          position: number
+          project_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          position?: number
+          project_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          position?: number
+          project_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapters_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      observations: {
+        Row: {
+          body: string
+          created_at: string
+          evidence: Json
+          id: string
+          origin: string
+          project_id: string
+          scene_id: string | null
+          status: string
+          title: string
+          uncertainty: string | null
+          updated_at: string
+          why_it_matters: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          evidence?: Json
+          id?: string
+          origin?: string
+          project_id: string
+          scene_id?: string | null
+          status?: string
+          title: string
+          uncertainty?: string | null
+          updated_at?: string
+          why_it_matters?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          evidence?: Json
+          id?: string
+          origin?: string
+          project_id?: string
+          scene_id?: string | null
+          status?: string
+          title?: string
+          uncertainty?: string | null
+          updated_at?: string
+          why_it_matters?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "observations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "observations_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          creative_direction: string | null
+          deleted_at: string | null
+          genre: string | null
+          id: string
+          is_sample: boolean
+          owner_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creative_direction?: string | null
+          deleted_at?: string | null
+          genre?: string | null
+          id?: string
+          is_sample?: boolean
+          owner_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creative_direction?: string | null
+          deleted_at?: string | null
+          genre?: string | null
+          id?: string
+          is_sample?: boolean
+          owner_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      scene_revisions: {
+        Row: {
+          content: Json | null
+          created_at: string
+          id: string
+          label: string | null
+          plain_text: string
+          project_id: string
+          scene_id: string
+          source: string
+          word_count: number
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          plain_text?: string
+          project_id: string
+          scene_id: string
+          source?: string
+          word_count?: number
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          plain_text?: string
+          project_id?: string
+          scene_id?: string
+          source?: string
+          word_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scene_revisions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scene_revisions_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scenes: {
+        Row: {
+          chapter_id: string
+          content: Json | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          location: string | null
+          plain_text: string
+          position: number
+          pov: string | null
+          project_id: string
+          story_time: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+          word_count: number
+        }
+        Insert: {
+          chapter_id: string
+          content?: Json | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          location?: string | null
+          plain_text?: string
+          position?: number
+          pov?: string | null
+          project_id: string
+          story_time?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          word_count?: number
+        }
+        Update: {
+          chapter_id?: string
+          content?: Json | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          location?: string | null
+          plain_text?: string
+          position?: number
+          pov?: string | null
+          project_id?: string
+          story_time?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          word_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenes_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scenes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      owns_project: { Args: { _project_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
