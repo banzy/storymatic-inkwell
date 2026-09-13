@@ -18,9 +18,8 @@ import {
 } from "@/lib/manuscript.functions";
 
 export const Route = createFileRoute("/_authenticated/studio")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    sample: search["sample"] === true || search["sample"] === "true" ? true : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { sample?: boolean } =>
+    search["sample"] === true || search["sample"] === "true" ? { sample: true } : {},
   head: () => ({
     meta: [
       { title: "Your projects — Storymatic" },

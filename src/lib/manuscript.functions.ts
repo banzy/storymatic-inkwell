@@ -14,6 +14,9 @@ import { countWords, docToPlainText, splitIntoScenes, textToDoc } from "./prose"
 
 const uuid = z.string().uuid();
 
+/** Editor documents are stored as jsonb; the generated Json type is structural. */
+const asJson = (value: unknown) => value as never;
+
 /* ------------------------------------------------------------------ projects */
 
 export const listProjects = createServerFn({ method: "GET" })
@@ -65,7 +68,7 @@ export const createProject = createServerFn({ method: "POST" })
       chapter_id: chapter.id,
       title: "Scene One",
       position: 1,
-      content: textToDoc(""),
+      content: asJson(textToDoc("")),
     });
     if (sceneError) throw new Error(sceneError.message);
 
@@ -123,7 +126,7 @@ async function buildSample(supabase: SupabaseLike, userId: string) {
         pov: scene.pov,
         location: scene.location,
         story_time: scene.storyTime,
-        content: doc,
+        content: asJson(doc),
         plain_text: plain,
         word_count: countWords(plain),
       })
@@ -135,7 +138,7 @@ async function buildSample(supabase: SupabaseLike, userId: string) {
     await supabase.from("scene_revisions").insert({
       project_id: project.id,
       scene_id: row.id,
-      content: doc,
+      content: asJson(doc),
       plain_text: plain,
       word_count: countWords(plain),
       source: "sample",
@@ -294,7 +297,7 @@ export const saveScene = createServerFn({ method: "POST" })
     const { error } = await supabase
       .from("scenes")
       .update({
-        content: data.content as never,
+        content: asJson(data.content),
         plain_text: data.plainText,
         word_count: data.wordCount,
       })
@@ -318,7 +321,7 @@ export const saveScene = createServerFn({ method: "POST" })
           .insert({
             project_id: scene.project_id,
             scene_id: data.sceneId,
-            content: data.content as never,
+            content: asJson(data.content),
             plain_text: data.plainText,
             word_count: data.wordCount,
             source: "author",
@@ -385,7 +388,7 @@ export const createScene = createServerFn({ method: "POST" })
         chapter_id: data.chapterId,
         title: data.title?.trim() || "New scene",
         position: (last?.position ?? 0) + 1,
-        content: textToDoc(""),
+        content: asJson(textToDoc("")),
       })
       .select("id")
       .single();
@@ -405,11 +408,10 @@ export const renameNode = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const table = data.kind === "chapter" ? "chapters" : "scenes";
-    const { error } = await context.supabase
-      .from(table)
-      .update({ title: data.title })
-      .eq("id", data.id);
+    const { error } =
+      data.kind === "chapter"
+        ? await context.supabase.from("chapters").update({ title: data.title }).eq("id", data.id)
+        : await context.supabase.from("scenes").update({ title: data.title }).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -427,42 +429,66 @@ export const moveNode = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const table = data.kind === "chapter" ? "chapters" : "scenes";
-    const scopeColumn = data.kind === "chapter" ? "project_id" : "chapter_id";
 
-    const { data: current, error } = await supabase
-      .from(table)
-      .select(`id, position, ${scopeColumn}`)
-      .eq("id", data.id)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
+    const readCurrent = async () => {
+      if (data.kind === "chapter") {
+        const { data: row } = await supabase
+          .from("chapters")
+          .select("id, position, project_id")
+          .eq("id", data.id)
+          .maybeSingle();
+        return row ? { position: row.position, scope: row.project_id } : null;
+      }
+      const { data: row } = await supabase
+        .from("scenes")
+        .select("id, position, chapter_id")
+        .eq("id", data.id)
+        .maybeSingle();
+      return row ? { position: row.position, scope: row.chapter_id } : null;
+    };
+
+    const current = await readCurrent();
     if (!current) throw new Error("Not found");
 
-    const scopeValue = (current as Record<string, string>)[scopeColumn]!;
-    const query = supabase
-      .from(table)
-      .select("id, position")
-      .eq(scopeColumn, scopeValue)
-      .is("deleted_at", null)
-      .limit(1);
-
-    const { data: neighbour } = data.direction === "up"
-      ? await query
-          .lt("position", (current as { position: number }).position)
-          .order("position", { ascending: false })
-          .maybeSingle()
-      : await query
-          .gt("position", (current as { position: number }).position)
-          .order("position", { ascending: true })
+    const neighbour = await (async () => {
+      const ascending = data.direction === "down";
+      if (data.kind === "chapter") {
+        const query = supabase
+          .from("chapters")
+          .select("id, position")
+          .eq("project_id", current.scope)
+          .is("deleted_at", null);
+        const { data: row } = await (ascending
+          ? query.gt("position", current.position).order("position", { ascending: true })
+          : query.lt("position", current.position).order("position", { ascending: false })
+        )
+          .limit(1)
           .maybeSingle();
+        return row;
+      }
+      const query = supabase
+        .from("scenes")
+        .select("id, position")
+        .eq("chapter_id", current.scope)
+        .is("deleted_at", null);
+      const { data: row } = await (ascending
+        ? query.gt("position", current.position).order("position", { ascending: true })
+        : query.lt("position", current.position).order("position", { ascending: false })
+      )
+        .limit(1)
+        .maybeSingle();
+      return row;
+    })();
 
     if (!neighbour) return { moved: false };
 
-    await supabase
-      .from(table)
-      .update({ position: (current as { position: number }).position })
-      .eq("id", neighbour.id);
-    await supabase.from(table).update({ position: neighbour.position }).eq("id", data.id);
+    if (data.kind === "chapter") {
+      await supabase.from("chapters").update({ position: current.position }).eq("id", neighbour.id);
+      await supabase.from("chapters").update({ position: neighbour.position }).eq("id", data.id);
+    } else {
+      await supabase.from("scenes").update({ position: current.position }).eq("id", neighbour.id);
+      await supabase.from("scenes").update({ position: neighbour.position }).eq("id", data.id);
+    }
     return { moved: true };
   });
 
@@ -566,7 +592,7 @@ export const restoreRevision = createServerFn({ method: "POST" })
       await supabase.from("scene_revisions").insert({
         project_id: revision.project_id,
         scene_id: revision.scene_id,
-        content: scene.content,
+        content: asJson(scene.content),
         plain_text: scene.plain_text,
         word_count: scene.word_count,
         source: "author",
@@ -577,7 +603,7 @@ export const restoreRevision = createServerFn({ method: "POST" })
     const { error: updateError } = await supabase
       .from("scenes")
       .update({
-        content: revision.content,
+        content: asJson(revision.content),
         plain_text: revision.plain_text,
         word_count: revision.word_count,
       })
@@ -634,7 +660,7 @@ export const importManuscript = createServerFn({ method: "POST" })
           chapter_id: chapter.id,
           title: part.title,
           position: position++,
-          content: doc,
+          content: asJson(doc),
           plain_text: plain,
           word_count: countWords(plain),
         })
@@ -645,7 +671,7 @@ export const importManuscript = createServerFn({ method: "POST" })
       await supabase.from("scene_revisions").insert({
         project_id: data.projectId,
         scene_id: scene.id,
-        content: doc,
+        content: asJson(doc),
         plain_text: plain,
         word_count: countWords(plain),
         source: "import",
