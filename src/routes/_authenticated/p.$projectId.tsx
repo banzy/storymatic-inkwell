@@ -57,9 +57,8 @@ import {
 } from "@/lib/manuscript.functions";
 
 export const Route = createFileRoute("/_authenticated/p/$projectId")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    scene: typeof search["scene"] === "string" ? search["scene"] : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { scene?: string } =>
+    typeof search["scene"] === "string" ? { scene: search["scene"] } : {},
   head: () => ({
     meta: [
       { title: "Writing room — Storymatic" },
