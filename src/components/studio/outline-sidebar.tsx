@@ -142,7 +142,7 @@ export function OutlineSidebar(props: {
             const isCollapsed = collapsed[chapter.id] ?? false;
             return (
               <li key={chapter.id}>
-                <div className="group flex items-center gap-0.5 rounded-md px-1 py-0.5">
+                <div className="group flex min-w-0 items-center gap-0.5 rounded-md px-1 py-0.5">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -174,7 +174,7 @@ export function OutlineSidebar(props: {
                   ) : (
                     <span className="flex-1 truncate text-sm font-medium">{chapter.title}</span>
                   )}
-                  <span className="flex opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                  <span className="hidden shrink-0 group-focus-within:flex group-hover:flex">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -226,7 +226,7 @@ export function OutlineSidebar(props: {
                     {chapterScenes.map((scene) => {
                       const active = scene.id === activeSceneId;
                       return (
-                        <li key={scene.id} className="group flex items-center gap-0.5">
+                        <li key={scene.id} className="group flex min-w-0 items-center gap-0.5">
                           {editing?.kind === "scene" && editing.id === scene.id ? (
                             <Input
                               autoFocus
@@ -254,7 +254,7 @@ export function OutlineSidebar(props: {
                               {scene.title}
                             </button>
                           )}
-                          <span className="flex opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                          <span className="hidden shrink-0 group-focus-within:flex group-hover:flex">
                             <Button
                               variant="ghost"
                               size="icon"
