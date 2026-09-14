@@ -142,11 +142,12 @@ export function ContextPanel(props: {
   } = props;
 
   const [meta, setMeta] = useState<SceneMeta | null>(scene);
-  const [metaSceneId, setMetaSceneId] = useState(scene?.id ?? null);
-  if (scene?.id !== metaSceneId) {
+  const [metaSceneId, setMetaSceneId] = useState<string | null>(scene?.id ?? null);
+  if ((scene?.id ?? null) !== metaSceneId) {
     setMetaSceneId(scene?.id ?? null);
     setMeta(scene);
   }
+
 
   const [newDirection, setNewDirection] = useState("");
   const [newKind, setNewKind] = useState<"standing" | "planned" | "exception">("standing");
