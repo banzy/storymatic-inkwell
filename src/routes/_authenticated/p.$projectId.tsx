@@ -138,6 +138,9 @@ function Workspace() {
   const observationStatusFn = useServerFn(setObservationStatus);
   const restoreFn = useServerFn(restoreRevision);
   const resetSampleFn = useServerFn(resetSampleProject);
+  const proposeFn = useServerFn(proposePassageEdit);
+  const askFn = useServerFn(askStorymatic);
+
 
   const workspace = useQuery({
     queryKey: ["workspace", projectId],
