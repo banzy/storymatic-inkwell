@@ -32,7 +32,11 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
       per claim. Verified in browser on the sample.
 - [ ] Increment 3b — Director/author intent surfacing, quiet observations →
       Discoveries, contradiction + needs-review handling across scenes.
-- [ ] Dynamic Outline: planned vs emergent, divergence noted not flagged as error.
+- [x] Dynamic Outline: two-lane view (Planned / As written), planned steps with intent,
+      reorder and set aside, author or inferred links to scenes, quiet divergence notes
+      (not in the draft yet, not in the plan, happens earlier than planned), "Compare
+      with the draft" review whose readings stay unconfirmed until the author agrees.
+      Verified in browser on the sample.
 - [ ] Dynamic Synopsis at story/act/chapter/scene/character/thread levels, editable+lockable.
 - [ ] Scenes/Corkboard: inferred cards, drag reorder, consequence analysis on move.
 - [ ] Living characters: identity vs current state vs timeline arc; character knowledge

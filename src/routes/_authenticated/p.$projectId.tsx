@@ -245,7 +245,7 @@ function Workspace() {
         setOutlineMessage(
           `${result.placed} of ${result.considered} planned step${
             result.considered === 1 ? "" : "s"
-          } look written. These are Storymatic's readings until you confirm them.`,
+          } ${result.placed === 1 ? "looks" : "look"} written. These are Storymatic's readings until you confirm them.`,
         );
       } else {
         setOutlineMessage(result.message);
