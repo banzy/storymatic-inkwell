@@ -146,6 +146,9 @@ export function ContextPanel(props: {
     onRestoreRevision,
     onResetSample,
     onExport,
+    askSlot,
+    proposalSlot,
+
   } = props;
 
   const [meta, setMeta] = useState<SceneMeta | null>(scene);
