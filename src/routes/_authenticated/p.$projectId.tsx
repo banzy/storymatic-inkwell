@@ -187,6 +187,8 @@ function Workspace() {
   const [askTurns, setAskTurns] = useState<AskTurn[]>([]);
   const [askScope, setAskScope] = useState<AskScope>("scene");
   const [askLoading, setAskLoading] = useState(false);
+  const [analysing, setAnalysing] = useState(false);
+  const [analysisMessage, setAnalysisMessage] = useState<string | null>(null);
   const editorRef = useRef<Editor | null>(null);
   const pendingHighlight = useRef<string | null>(null);
 
