@@ -205,6 +205,10 @@ function Workspace() {
   const [askLoading, setAskLoading] = useState(false);
   const [analysing, setAnalysing] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState<string | null>(null);
+  const [outlineOpen, setOutlineOpen] = useState(false);
+  const [reviewingOutline, setReviewingOutline] = useState(false);
+  const [outlineMessage, setOutlineMessage] = useState<string | null>(null);
+  const [unplanned, setUnplanned] = useState<{ sceneId: string; note: string }[]>([]);
   const editorRef = useRef<Editor | null>(null);
   const pendingHighlight = useRef<string | null>(null);
 
@@ -220,6 +224,41 @@ function Workspace() {
     queryFn: () => storyModelFn({ data: { projectId } }),
     enabled: panelView === "story" || panelView === "characters",
   });
+
+  const outline = useQuery({
+    queryKey: ["outline", projectId],
+    queryFn: () => outlineFn({ data: { projectId } }),
+    enabled: outlineOpen,
+  });
+
+  const refreshOutline = () => queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
+
+  const runOutlineReview = async () => {
+    setReviewingOutline(true);
+    setOutlineMessage("Comparing your plan with the draft…");
+    try {
+      await autosave.flush();
+      const result = await reviewOutlineFn({ data: { projectId } });
+      if (result.ok) {
+        setUnplanned(result.unplanned);
+        await refreshOutline();
+        setOutlineMessage(
+          `${result.placed} of ${result.considered} planned step${
+            result.considered === 1 ? "" : "s"
+          } look written. These are Storymatic's readings until you confirm them.`,
+        );
+      } else {
+        setOutlineMessage(result.message);
+      }
+    } catch {
+      setOutlineMessage(
+        "Storymatic couldn't compare the plan just now. Your writing is unaffected.",
+      );
+    } finally {
+      setReviewingOutline(false);
+    }
+  };
+
 
   const runSceneAnalysis = async () => {
     if (!activeSceneId) return;
