@@ -125,6 +125,8 @@ export function ContextPanel(props: {
   onExport: () => void;
   askSlot: ReactNode;
   proposalSlot: ReactNode;
+  storySlot: ReactNode;
+  charactersSlot: ReactNode;
 
 }) {
   const {
