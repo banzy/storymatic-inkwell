@@ -60,6 +60,12 @@ import {
   saveBeat,
   setBeatState,
 } from "@/lib/outline.functions";
+import {
+  StorySpace,
+  type CardPatch,
+  type StorySpaceTab,
+} from "@/components/studio/story-space";
+import { describeScenes, reviewSceneMove } from "@/lib/storyspace.functions";
 import { docToMarkdown } from "@/lib/prose";
 
 import {
@@ -166,6 +172,8 @@ function Workspace() {
   const beatStateFn = useServerFn(setBeatState);
   const deleteBeatFn = useServerFn(deleteBeat);
   const reviewOutlineFn = useServerFn(reviewOutline);
+  const describeScenesFn = useServerFn(describeScenes);
+  const reviewMoveFn = useServerFn(reviewSceneMove);
 
 
 
@@ -209,6 +217,14 @@ function Workspace() {
   const [reviewingOutline, setReviewingOutline] = useState(false);
   const [outlineMessage, setOutlineMessage] = useState<string | null>(null);
   const [unplanned, setUnplanned] = useState<{ sceneId: string; note: string }[]>([]);
+  const [storyOpen, setStoryOpen] = useState(false);
+  const [storyTab, setStoryTab] = useState<StorySpaceTab>("scenes");
+  const [fillingCards, setFillingCards] = useState(false);
+  const [storyMessage, setStoryMessage] = useState<string | null>(null);
+  const [moveNotes, setMoveNotes] = useState<{
+    sceneTitle: string;
+    notes: { note: string; certainty: string }[];
+  } | null>(null);
   const editorRef = useRef<Editor | null>(null);
   const pendingHighlight = useRef<string | null>(null);
 
@@ -222,13 +238,13 @@ function Workspace() {
   const storyModel = useQuery({
     queryKey: ["story-model", projectId],
     queryFn: () => storyModelFn({ data: { projectId } }),
-    enabled: panelView === "story" || panelView === "characters",
+    enabled: panelView === "story" || panelView === "characters" || storyOpen,
   });
 
   const outline = useQuery({
     queryKey: ["outline", projectId],
     queryFn: () => outlineFn({ data: { projectId } }),
-    enabled: outlineOpen,
+    enabled: outlineOpen || storyOpen,
   });
 
   const refreshOutline = () => queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
@@ -259,6 +275,46 @@ function Workspace() {
     }
   };
 
+
+  /** Fills only the card fields left blank; anything the author wrote stays as it is. */
+  const runFillCards = async () => {
+    setFillingCards(true);
+    setStoryMessage("Reading your scenes…");
+    try {
+      await autosave.flush();
+      const result = await describeScenesFn({ data: { projectId } });
+      if (result.ok) {
+        await refreshOutline();
+        setStoryMessage(
+          result.filled === 0
+            ? "Nothing new to add — the scenes don't say more than the cards already show."
+            : `Filled in ${result.filled} card${result.filled === 1 ? "" : "s"} from the scenes themselves. Edit any of them.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't read the scenes just now. Your writing is unaffected.");
+    } finally {
+      setFillingCards(false);
+    }
+  };
+
+  /** After a move: consequences only. Nothing is rewritten. */
+  const runMoveReview = async (sceneId: string, sceneTitle: string) => {
+    setStoryMessage("Looking at what the new order changes…");
+    try {
+      const result = await reviewMoveFn({ data: { projectId, sceneId } });
+      if (result.ok) {
+        setMoveNotes({ sceneTitle, notes: result.notes });
+        setStoryMessage(null);
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't look at the move just now. The move is still saved.");
+    }
+  };
 
   const runSceneAnalysis = async () => {
     if (!activeSceneId) return;
@@ -751,6 +807,18 @@ function Workspace() {
             Outline
           </Button>
 
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setFocusMode(false);
+              setPanelView(null);
+              setStoryOpen(true);
+            }}
+          >
+            Story
+          </Button>
+
 
           <Button
             variant="ghost"
@@ -942,6 +1010,48 @@ function Workspace() {
                 await refreshOutline();
               })
             }
+          />
+        )}
+
+        {storyOpen && (
+          <StorySpace
+            tab={storyTab}
+            onTabChange={setStoryTab}
+            scenes={outline.data?.scenes ?? []}
+            chapters={outline.data?.chapters ?? []}
+            entities={storyModel.data?.entities ?? []}
+            claims={storyModel.data?.claims ?? []}
+            sceneTitles={new Map(Object.entries(sceneTitles))}
+            loading={outline.isLoading}
+            filling={fillingCards}
+            message={storyMessage}
+            moveNotes={moveNotes}
+            onDismissMoveNotes={() => setMoveNotes(null)}
+            onClose={() => setStoryOpen(false)}
+            onFillCards={() => void runFillCards()}
+            onOpenScene={(sceneId) => {
+              setStoryOpen(false);
+              void goToScene(sceneId);
+            }}
+            onMoveScene={(sceneId, direction) => {
+              const title = sceneTitles[sceneId] ?? "that scene";
+              mutate.mutate(async () => {
+                await moveFn({ data: { kind: "scene", id: sceneId, direction } });
+                await refreshOutline();
+                // Moving a scene never rewrites it; it only asks what the new order changes.
+                await runMoveReview(sceneId, title);
+              });
+            }}
+            onSaveCard={(sceneId, patch: CardPatch) =>
+              mutate.mutate(async () => {
+                await sceneMetaFn({ data: { sceneId, ...patch } });
+                await refreshOutline();
+              })
+            }
+            onOpenEvidence={(sceneId, quote) => {
+              setStoryOpen(false);
+              void openEvidence(sceneId, quote);
+            }}
           />
         )}
       </main>
