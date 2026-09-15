@@ -291,6 +291,70 @@ export type Database = {
         }
         Relationships: []
       }
+      relationship_beats: {
+        Row: {
+          author_confirmed: boolean
+          change: string
+          created_at: string
+          evidence: Json
+          id: string
+          project_id: string
+          relationship_id: string
+          scene_id: string | null
+          story_position: number | null
+          truth_type: string
+          updated_at: string
+        }
+        Insert: {
+          author_confirmed?: boolean
+          change: string
+          created_at?: string
+          evidence?: Json
+          id?: string
+          project_id: string
+          relationship_id: string
+          scene_id?: string | null
+          story_position?: number | null
+          truth_type?: string
+          updated_at?: string
+        }
+        Update: {
+          author_confirmed?: boolean
+          change?: string
+          created_at?: string
+          evidence?: Json
+          id?: string
+          project_id?: string
+          relationship_id?: string
+          scene_id?: string | null
+          story_position?: number | null
+          truth_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationship_beats_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relationship_beats_relationship_id_fkey"
+            columns: ["relationship_id"]
+            isOneToOne: false
+            referencedRelation: "story_relationships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relationship_beats_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scene_revisions: {
         Row: {
           content: Json | null
@@ -559,6 +623,114 @@ export type Database = {
           },
           {
             foreignKeyName: "story_entities_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_relationships: {
+        Row: {
+          author_confirmed: boolean
+          created_at: string
+          current_state: string | null
+          from_entity_id: string
+          id: string
+          nature: string | null
+          notes: string | null
+          project_id: string
+          to_entity_id: string
+          truth_type: string
+          updated_at: string
+        }
+        Insert: {
+          author_confirmed?: boolean
+          created_at?: string
+          current_state?: string | null
+          from_entity_id: string
+          id?: string
+          nature?: string | null
+          notes?: string | null
+          project_id: string
+          to_entity_id: string
+          truth_type?: string
+          updated_at?: string
+        }
+        Update: {
+          author_confirmed?: boolean
+          created_at?: string
+          current_state?: string | null
+          from_entity_id?: string
+          id?: string
+          nature?: string | null
+          notes?: string | null
+          project_id?: string
+          to_entity_id?: string
+          truth_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_relationships_from_entity_id_fkey"
+            columns: ["from_entity_id"]
+            isOneToOne: false
+            referencedRelation: "story_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_relationships_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_relationships_to_entity_id_fkey"
+            columns: ["to_entity_id"]
+            isOneToOne: false
+            referencedRelation: "story_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_synopses: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          locked: boolean
+          project_id: string
+          scope: string
+          source: string
+          target_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          locked?: boolean
+          project_id: string
+          scope?: string
+          source?: string
+          target_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          locked?: boolean
+          project_id?: string
+          scope?: string
+          source?: string
+          target_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_synopses_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"

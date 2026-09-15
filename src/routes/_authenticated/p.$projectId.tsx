@@ -66,6 +66,22 @@ import {
   type StorySpaceTab,
 } from "@/components/studio/story-space";
 import { describeScenes, reviewSceneMove } from "@/lib/storyspace.functions";
+import {
+  DiscoveriesView,
+  RelationshipsView,
+  SynopsisView,
+  type SynopsisTarget,
+} from "@/components/studio/story-extras";
+import {
+  findDiscoveries,
+  getStoryExtras,
+  judgeRelationship,
+  judgeRelationshipBeat,
+  readRelationships,
+  saveRelationship,
+  saveSynopsis,
+  writeSynopsis,
+} from "@/lib/storybrain.functions";
 import { docToMarkdown } from "@/lib/prose";
 
 import {
@@ -174,6 +190,14 @@ function Workspace() {
   const reviewOutlineFn = useServerFn(reviewOutline);
   const describeScenesFn = useServerFn(describeScenes);
   const reviewMoveFn = useServerFn(reviewSceneMove);
+  const extrasFn = useServerFn(getStoryExtras);
+  const writeSynopsisFn = useServerFn(writeSynopsis);
+  const saveSynopsisFn = useServerFn(saveSynopsis);
+  const readRelationshipsFn = useServerFn(readRelationships);
+  const saveRelationshipFn = useServerFn(saveRelationship);
+  const judgeRelationshipFn = useServerFn(judgeRelationship);
+  const judgeBeatFn = useServerFn(judgeRelationshipBeat);
+  const findDiscoveriesFn = useServerFn(findDiscoveries);
 
 
 
@@ -221,6 +245,8 @@ function Workspace() {
   const [storyTab, setStoryTab] = useState<StorySpaceTab>("scenes");
   const [fillingCards, setFillingCards] = useState(false);
   const [storyMessage, setStoryMessage] = useState<string | null>(null);
+  const [synopsisBusy, setSynopsisBusy] = useState<string | null>(null);
+  const [extrasBusy, setExtrasBusy] = useState(false);
   const [moveNotes, setMoveNotes] = useState<{
     sceneTitle: string;
     notes: { note: string; certainty: string }[];
@@ -248,6 +274,100 @@ function Workspace() {
   });
 
   const refreshOutline = () => queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
+
+  // The synopsis, relationships and discoveries all grow with the draft, so they
+  // are read fresh whenever the Story views are opened.
+  const extras = useQuery({
+    queryKey: ["story-extras", projectId],
+    queryFn: () => extrasFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+  const refreshExtras = () =>
+    queryClient.invalidateQueries({ queryKey: ["story-extras", projectId] });
+
+  const synopsisTargets: SynopsisTarget[] = useMemo(() => {
+    const chapters = outline.data?.chapters ?? [];
+    return [
+      { scope: "story" as const, targetId: null, label: "The whole story so far" },
+      ...chapters.map((chapter) => ({
+        scope: "chapter" as const,
+        targetId: chapter.id,
+        label: chapter.title,
+      })),
+    ];
+  }, [outline.data]);
+
+  const runWriteSynopsis = async (target: SynopsisTarget) => {
+    const key = `${target.scope}:${target.targetId ?? ""}`;
+    setSynopsisBusy(key);
+    setStoryMessage("Reading the draft…");
+    try {
+      const result = await writeSynopsisFn({
+        data: { projectId, scope: target.scope, targetId: target.targetId, length: "full" },
+      });
+      if (result.ok) {
+        await refreshExtras();
+        setStoryMessage(
+          `Written from ${result.scenes} scene${result.scenes === 1 ? "" : "s"}. Edit it freely, and lock it when it reads right.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't write that summary just now. Your draft is unaffected.");
+    } finally {
+      setSynopsisBusy(null);
+    }
+  };
+
+  const runReadRelationships = async () => {
+    setExtrasBusy(true);
+    setStoryMessage("Reading how your people stand with each other…");
+    try {
+      await autosave.flush();
+      const result = await readRelationshipsFn({ data: { projectId } });
+      if (result.ok) {
+        await refreshExtras();
+        setStoryMessage(
+          result.pairs === 0
+            ? "Nothing between your people showed up clearly enough to record yet."
+            : `${result.pairs} relationship${result.pairs === 1 ? "" : "s"} and ${result.moments} moment${
+                result.moments === 1 ? "" : "s"
+              } of change. These are Storymatic's readings until you confirm them.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't read the relationships just now. Your draft is unaffected.");
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
+
+  const runFindDiscoveries = async () => {
+    setExtrasBusy(true);
+    setStoryMessage("Looking across your scenes…");
+    try {
+      await autosave.flush();
+      const result = await findDiscoveriesFn({ data: { projectId } });
+      if (result.ok) {
+        await refreshExtras();
+        await queryClient.invalidateQueries({ queryKey: ["workspace", projectId] });
+        setStoryMessage(
+          result.added === 0
+            ? "Nothing new worth raising. Nothing in your draft has been changed."
+            : `${result.added} thing${result.added === 1 ? "" : "s"} worth a look. None of it is a verdict.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't look across the scenes just now. Your draft is unaffected.");
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
 
   const runOutlineReview = async () => {
     setReviewingOutline(true);
@@ -1016,7 +1136,11 @@ function Workspace() {
         {storyOpen && (
           <StorySpace
             tab={storyTab}
-            onTabChange={setStoryTab}
+            onTabChange={(next) => {
+              // A note about one view shouldn't linger over another.
+              setStoryMessage(null);
+              setStoryTab(next);
+            }}
             scenes={outline.data?.scenes ?? []}
             chapters={outline.data?.chapters ?? []}
             entities={storyModel.data?.entities ?? []}
@@ -1052,7 +1176,112 @@ function Workspace() {
               setStoryOpen(false);
               void openEvidence(sceneId, quote);
             }}
+            headerAction={
+              storyTab === "relationships" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runReadRelationships()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Reading…" : "Read the relationships"}
+                </Button>
+              ) : storyTab === "discoveries" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runFindDiscoveries()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Looking…" : "Look across the scenes"}
+                </Button>
+              ) : null
+            }
+            extraSlot={
+              extras.isLoading ? (
+                <p className="text-sm text-muted-foreground">Gathering your story…</p>
+              ) : storyTab === "synopsis" ? (
+                <SynopsisView
+                  targets={synopsisTargets}
+                  synopses={extras.data?.synopses ?? []}
+                  busyTarget={synopsisBusy}
+                  onWrite={(target) => void runWriteSynopsis(target)}
+                  onSave={(target, body, locked) =>
+                    mutate.mutate(async () => {
+                      await saveSynopsisFn({
+                        data: {
+                          projectId,
+                          scope: target.scope,
+                          targetId: target.targetId,
+                          body,
+                          locked,
+                        },
+                      });
+                      await refreshExtras();
+                    })
+                  }
+                />
+              ) : storyTab === "relationships" ? (
+                <RelationshipsView
+                  relationships={extras.data?.relationships ?? []}
+                  beats={extras.data?.beats ?? []}
+                  entities={storyModel.data?.entities ?? []}
+                  sceneTitles={new Map(Object.entries(sceneTitles))}
+                  onSave={(id, nature, currentState, notes) =>
+                    mutate.mutate(async () => {
+                      await saveRelationshipFn({
+                        data: {
+                          id,
+                          nature: nature || null,
+                          currentState: currentState || null,
+                          notes: notes || null,
+                        },
+                      });
+                      await refreshExtras();
+                    })
+                  }
+                  onJudge={(id, confirmed) =>
+                    mutate.mutate(async () => {
+                      await judgeRelationshipFn({ data: { id, confirmed } });
+                      await refreshExtras();
+                    })
+                  }
+                  onJudgeBeat={(id, confirmed) =>
+                    mutate.mutate(async () => {
+                      await judgeBeatFn({ data: { id, confirmed } });
+                      await refreshExtras();
+                    })
+                  }
+                  onOpenEvidence={(sceneId, quote) => {
+                    setStoryOpen(false);
+                    void openEvidence(sceneId, quote);
+                  }}
+                />
+              ) : (
+                <DiscoveriesView
+                  discoveries={extras.data?.discoveries ?? []}
+                  sceneTitles={new Map(Object.entries(sceneTitles))}
+                  onStatus={(id, status) =>
+                    mutate.mutate(async () => {
+                      await observationStatusFn({ data: { id, status } });
+                      await refreshExtras();
+                    })
+                  }
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                  onOpenEvidence={(sceneId, quote) => {
+                    setStoryOpen(false);
+                    void openEvidence(sceneId, quote);
+                  }}
+                />
+              )
+            }
           />
+
         )}
       </main>
 
