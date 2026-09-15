@@ -735,15 +735,37 @@ function Workspace() {
                   }
                 }}
                 onReady={onEditorReady}
-                onSelectionText={setSelectionText}
+                onSelectionText={(text) => {
+                  setSelectionText(text);
+                  if (!text.trim()) {
+                    setSelectionPos(null);
+                    return;
+                  }
+                  const domSelection = window.getSelection();
+                  const rect = domSelection?.rangeCount
+                    ? domSelection.getRangeAt(0).getBoundingClientRect()
+                    : null;
+                  if (!rect) return;
+                  setSelectionPos({
+                    top: Math.min(rect.bottom + 8, window.innerHeight - 220),
+                    left: Math.min(Math.max(rect.left, 16), window.innerWidth - 320),
+                  });
+                }}
               />
             )}
-            {selectionText && (
+            {selectionText && !selectionPos && (
               <p className="mt-8 text-xs text-muted-foreground">
-                {selectionText.trim().split(/\s+/).length} words selected — contextual rewriting
-                arrives with the assistance increment.
+                {selectionText.trim().split(/\s+/).length} words selected.{" "}
+                <button
+                  type="button"
+                  className="underline underline-offset-2"
+                  onClick={() => void requestProposal("rewrite")}
+                >
+                  Ask for a rewrite
+                </button>
               </p>
             )}
+
           </div>
         </div>
       </main>
