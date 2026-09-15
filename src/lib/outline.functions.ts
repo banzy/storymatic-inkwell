@@ -181,7 +181,13 @@ export const setBeatState = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      status?: string;
+      scene_id?: string | null;
+      link_basis?: string;
+      author_confirmed?: boolean;
+      link_note?: string | null;
+    } = {};
     if (data.status) patch["status"] = data.status;
     if (data.sceneId !== undefined) {
       patch["scene_id"] = data.sceneId;
