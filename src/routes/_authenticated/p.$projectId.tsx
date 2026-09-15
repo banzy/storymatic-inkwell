@@ -51,6 +51,15 @@ import {
   saveEntity,
   setClaimJudgement,
 } from "@/lib/story.functions";
+import { OutlineView, type BeatDraft } from "@/components/studio/outline-view";
+import {
+  deleteBeat,
+  getOutline,
+  moveBeat,
+  reviewOutline,
+  saveBeat,
+  setBeatState,
+} from "@/lib/outline.functions";
 import { docToMarkdown } from "@/lib/prose";
 
 import {
