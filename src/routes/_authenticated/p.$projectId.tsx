@@ -537,6 +537,7 @@ function Workspace() {
         direction.chapter_id === activeChapter?.id),
   );
   const openObservations = data.observations.filter((row) => row.status === "open");
+  const sceneTitles = Object.fromEntries(data.scenes.map((row) => [row.id, row.title]));
   const wordCount = liveWordCount ?? scene.data?.word_count ?? 0;
 
   return (
