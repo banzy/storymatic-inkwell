@@ -182,6 +182,79 @@ export type Database = {
           },
         ]
       }
+      outline_beats: {
+        Row: {
+          author_confirmed: boolean
+          chapter_id: string | null
+          created_at: string
+          id: string
+          intent: string | null
+          kind: string
+          link_basis: string
+          link_note: string | null
+          position: number
+          project_id: string
+          scene_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_confirmed?: boolean
+          chapter_id?: string | null
+          created_at?: string
+          id?: string
+          intent?: string | null
+          kind?: string
+          link_basis?: string
+          link_note?: string | null
+          position?: number
+          project_id: string
+          scene_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_confirmed?: boolean
+          chapter_id?: string | null
+          created_at?: string
+          id?: string
+          intent?: string | null
+          kind?: string
+          link_basis?: string
+          link_note?: string | null
+          position?: number
+          project_id?: string
+          scene_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outline_beats_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outline_beats_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outline_beats_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           created_at: string
