@@ -160,6 +160,13 @@ function Workspace() {
   const analyseSceneFn = useServerFn(analyseScene);
   const claimJudgementFn = useServerFn(setClaimJudgement);
   const saveEntityFn = useServerFn(saveEntity);
+  const outlineFn = useServerFn(getOutline);
+  const saveBeatFn = useServerFn(saveBeat);
+  const moveBeatFn = useServerFn(moveBeat);
+  const beatStateFn = useServerFn(setBeatState);
+  const deleteBeatFn = useServerFn(deleteBeat);
+  const reviewOutlineFn = useServerFn(reviewOutline);
+
 
 
   const workspace = useQuery({
