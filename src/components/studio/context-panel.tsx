@@ -64,6 +64,8 @@ export type SceneMeta = {
 
 const VIEW_TITLES: Record<PanelView, string> = {
   ask: "Ask Storymatic",
+  proposal: "Suggested change",
+
   scene: "Scene context",
   director: "Your direction",
   observations: "Observations",
