@@ -894,6 +894,56 @@ function Workspace() {
 
           </div>
         </div>
+
+        {outlineOpen && (
+          <OutlineView
+            beats={outline.data?.beats ?? []}
+            scenes={outline.data?.scenes ?? []}
+            chapters={outline.data?.chapters ?? []}
+            loading={outline.isLoading}
+            reviewing={reviewingOutline}
+            message={outlineMessage}
+            unplanned={unplanned}
+            onClose={() => setOutlineOpen(false)}
+            onReview={() => void runOutlineReview()}
+            onOpenScene={(sceneId) => {
+              setOutlineOpen(false);
+              void goToScene(sceneId);
+            }}
+            onSaveBeat={(draft: BeatDraft) =>
+              mutate.mutate(async () => {
+                await saveBeatFn({
+                  data: {
+                    projectId,
+                    kind: draft.kind,
+                    title: draft.title,
+                    intent: draft.intent,
+                    ...(draft.id ? { id: draft.id } : {}),
+                  },
+                });
+                await refreshOutline();
+              })
+            }
+            onMoveBeat={(id, direction) =>
+              mutate.mutate(async () => {
+                await moveBeatFn({ data: { id, direction } });
+                await refreshOutline();
+              })
+            }
+            onDeleteBeat={(id) =>
+              mutate.mutate(async () => {
+                await deleteBeatFn({ data: { id } });
+                await refreshOutline();
+              })
+            }
+            onSetBeatState={(id, patch) =>
+              mutate.mutate(async () => {
+                await beatStateFn({ data: { id, ...patch } });
+                await refreshOutline();
+              })
+            }
+          />
+        )}
       </main>
 
       <SelectionMenu
