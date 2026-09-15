@@ -745,6 +745,18 @@ function Workspace() {
             size="sm"
             onClick={() => {
               setFocusMode(false);
+              setOutlineOpen(true);
+            }}
+          >
+            Outline
+          </Button>
+
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setFocusMode(false);
               setPanelView("ask");
             }}
           >
