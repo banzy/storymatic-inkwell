@@ -38,7 +38,11 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
       with the draft" review whose readings stay unconfirmed until the author agrees.
       Verified in browser on the sample.
 - [ ] Dynamic Synopsis at story/act/chapter/scene/character/thread levels, editable+lockable.
-- [ ] Scenes/Corkboard: inferred cards, drag reorder, consequence analysis on move.
+- [x] Story space (Scenes · Plot · Timeline): scene cards from the manuscript, author-
+      editable, "Fill in the blanks" fills only empty fields; keyboard-reachable reorder
+      with consequence notes after a move (never a rewrite); plot threads with backing
+      passages; story-time timeline leaving untimed scenes unplaced. Verified in browser.
+      Still open there: pointer drag-and-drop for cards.
 - [ ] Living characters: identity vs current state vs timeline arc; character knowledge
       states (knows/believes/suspects/misunderstands/doesn't know).
 - [ ] Relationships: evolving trajectories, human-readable (no scores in UI).
