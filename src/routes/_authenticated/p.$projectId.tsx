@@ -51,6 +51,15 @@ import {
   saveEntity,
   setClaimJudgement,
 } from "@/lib/story.functions";
+import { OutlineView, type BeatDraft } from "@/components/studio/outline-view";
+import {
+  deleteBeat,
+  getOutline,
+  moveBeat,
+  reviewOutline,
+  saveBeat,
+  setBeatState,
+} from "@/lib/outline.functions";
 import { docToMarkdown } from "@/lib/prose";
 
 import {
@@ -151,6 +160,13 @@ function Workspace() {
   const analyseSceneFn = useServerFn(analyseScene);
   const claimJudgementFn = useServerFn(setClaimJudgement);
   const saveEntityFn = useServerFn(saveEntity);
+  const outlineFn = useServerFn(getOutline);
+  const saveBeatFn = useServerFn(saveBeat);
+  const moveBeatFn = useServerFn(moveBeat);
+  const beatStateFn = useServerFn(setBeatState);
+  const deleteBeatFn = useServerFn(deleteBeat);
+  const reviewOutlineFn = useServerFn(reviewOutline);
+
 
 
   const workspace = useQuery({
@@ -189,6 +205,10 @@ function Workspace() {
   const [askLoading, setAskLoading] = useState(false);
   const [analysing, setAnalysing] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState<string | null>(null);
+  const [outlineOpen, setOutlineOpen] = useState(false);
+  const [reviewingOutline, setReviewingOutline] = useState(false);
+  const [outlineMessage, setOutlineMessage] = useState<string | null>(null);
+  const [unplanned, setUnplanned] = useState<{ sceneId: string; note: string }[]>([]);
   const editorRef = useRef<Editor | null>(null);
   const pendingHighlight = useRef<string | null>(null);
 
@@ -204,6 +224,41 @@ function Workspace() {
     queryFn: () => storyModelFn({ data: { projectId } }),
     enabled: panelView === "story" || panelView === "characters",
   });
+
+  const outline = useQuery({
+    queryKey: ["outline", projectId],
+    queryFn: () => outlineFn({ data: { projectId } }),
+    enabled: outlineOpen,
+  });
+
+  const refreshOutline = () => queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
+
+  const runOutlineReview = async () => {
+    setReviewingOutline(true);
+    setOutlineMessage("Comparing your plan with the draft…");
+    try {
+      await autosave.flush();
+      const result = await reviewOutlineFn({ data: { projectId } });
+      if (result.ok) {
+        setUnplanned(result.unplanned);
+        await refreshOutline();
+        setOutlineMessage(
+          `${result.placed} of ${result.considered} planned step${
+            result.considered === 1 ? "" : "s"
+          } ${result.placed === 1 ? "looks" : "look"} written. These are Storymatic's readings until you confirm them.`,
+        );
+      } else {
+        setOutlineMessage(result.message);
+      }
+    } catch {
+      setOutlineMessage(
+        "Storymatic couldn't compare the plan just now. Your writing is unaffected.",
+      );
+    } finally {
+      setReviewingOutline(false);
+    }
+  };
+
 
   const runSceneAnalysis = async () => {
     if (!activeSceneId) return;
@@ -558,7 +613,7 @@ function Workspace() {
         />
       )}
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="relative flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-3 border-b border-border px-4 py-2.5">
           {(!sidebarOpen || focusMode) && (
             <Button
@@ -684,6 +739,18 @@ function Workspace() {
               <Maximize2 className="size-4" aria-hidden="true" />
             )}
           </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setFocusMode(false);
+              setOutlineOpen(true);
+            }}
+          >
+            Outline
+          </Button>
+
 
           <Button
             variant="ghost"
@@ -827,6 +894,56 @@ function Workspace() {
 
           </div>
         </div>
+
+        {outlineOpen && (
+          <OutlineView
+            beats={outline.data?.beats ?? []}
+            scenes={outline.data?.scenes ?? []}
+            chapters={outline.data?.chapters ?? []}
+            loading={outline.isLoading}
+            reviewing={reviewingOutline}
+            message={outlineMessage}
+            unplanned={unplanned}
+            onClose={() => setOutlineOpen(false)}
+            onReview={() => void runOutlineReview()}
+            onOpenScene={(sceneId) => {
+              setOutlineOpen(false);
+              void goToScene(sceneId);
+            }}
+            onSaveBeat={(draft: BeatDraft) =>
+              mutate.mutate(async () => {
+                await saveBeatFn({
+                  data: {
+                    projectId,
+                    kind: draft.kind,
+                    title: draft.title,
+                    intent: draft.intent,
+                    ...(draft.id ? { id: draft.id } : {}),
+                  },
+                });
+                await refreshOutline();
+              })
+            }
+            onMoveBeat={(id, direction) =>
+              mutate.mutate(async () => {
+                await moveBeatFn({ data: { id, direction } });
+                await refreshOutline();
+              })
+            }
+            onDeleteBeat={(id) =>
+              mutate.mutate(async () => {
+                await deleteBeatFn({ data: { id } });
+                await refreshOutline();
+              })
+            }
+            onSetBeatState={(id, patch) =>
+              mutate.mutate(async () => {
+                await beatStateFn({ data: { id, ...patch } });
+                await refreshOutline();
+              })
+            }
+          />
+        )}
       </main>
 
       <SelectionMenu
