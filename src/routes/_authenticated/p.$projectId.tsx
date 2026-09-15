@@ -923,6 +923,50 @@ function Workspace() {
               onOpenSource={(sceneId, quote) => void openEvidence(sceneId, quote)}
             />
           }
+          storySlot={
+            <StoryView
+              entities={storyModel.data?.entities ?? []}
+              claims={storyModel.data?.claims ?? []}
+              sceneTitles={sceneTitles}
+              loading={storyModel.isLoading}
+              analysing={analysing}
+              canAnalyse={Boolean(activeSceneId)}
+              sceneTitle={activeScene?.title ?? null}
+              message={analysisMessage}
+              onAnalyse={() => void runSceneAnalysis()}
+              onOpenEvidence={(sceneId, quote) => void openEvidence(sceneId, quote)}
+              onClaimAction={(id, action) =>
+                mutate.mutate(async () => {
+                  await claimJudgementFn({ data: { id, action } });
+                  await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+                })
+              }
+            />
+          }
+          charactersSlot={
+            <CharactersView
+              entities={storyModel.data?.entities ?? []}
+              claims={storyModel.data?.claims ?? []}
+              sceneTitles={sceneTitles}
+              loading={storyModel.isLoading}
+              storyPosition={activeScene?.position ?? null}
+              sceneTitle={activeScene?.title ?? null}
+              onOpenEvidence={(sceneId, quote) => void openEvidence(sceneId, quote)}
+              onClaimAction={(id, action) =>
+                mutate.mutate(async () => {
+                  await claimJudgementFn({ data: { id, action } });
+                  await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+                })
+              }
+              onSaveEntity={(id, fields) =>
+                mutate.mutate(async () => {
+                  await saveEntityFn({ data: { id, ...fields } });
+                  await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+                  toast.success("Saved.");
+                })
+              }
+            />
+          }
           proposalSlot={
             <ProposalView
               proposal={proposal}
