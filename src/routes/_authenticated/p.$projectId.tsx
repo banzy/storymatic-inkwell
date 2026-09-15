@@ -44,6 +44,13 @@ import {
   proposePassageEdit,
   type EditAction,
 } from "@/lib/assist.functions";
+import { CharactersView, StoryView } from "@/components/studio/story-view";
+import {
+  analyseScene,
+  getStoryModel,
+  saveEntity,
+  setClaimJudgement,
+} from "@/lib/story.functions";
 import { docToMarkdown } from "@/lib/prose";
 
 import {
@@ -140,6 +147,10 @@ function Workspace() {
   const resetSampleFn = useServerFn(resetSampleProject);
   const proposeFn = useServerFn(proposePassageEdit);
   const askFn = useServerFn(askStorymatic);
+  const storyModelFn = useServerFn(getStoryModel);
+  const analyseSceneFn = useServerFn(analyseScene);
+  const claimJudgementFn = useServerFn(setClaimJudgement);
+  const saveEntityFn = useServerFn(saveEntity);
 
 
   const workspace = useQuery({
@@ -176,6 +187,8 @@ function Workspace() {
   const [askTurns, setAskTurns] = useState<AskTurn[]>([]);
   const [askScope, setAskScope] = useState<AskScope>("scene");
   const [askLoading, setAskLoading] = useState(false);
+  const [analysing, setAnalysing] = useState(false);
+  const [analysisMessage, setAnalysisMessage] = useState<string | null>(null);
   const editorRef = useRef<Editor | null>(null);
   const pendingHighlight = useRef<string | null>(null);
 
@@ -185,6 +198,39 @@ function Workspace() {
     queryFn: () => fetchRevisions({ data: { sceneId: activeSceneId! } }),
     enabled: Boolean(activeSceneId) && panelView === "revisions",
   });
+
+  const storyModel = useQuery({
+    queryKey: ["story-model", projectId],
+    queryFn: () => storyModelFn({ data: { projectId } }),
+    enabled: panelView === "story" || panelView === "characters",
+  });
+
+  const runSceneAnalysis = async () => {
+    if (!activeSceneId) return;
+    setAnalysing(true);
+    setAnalysisMessage("Updating story understanding…");
+    try {
+      // Only the open scene is read; the rest of the manuscript is left alone.
+      await autosave.flush();
+      const result = await analyseSceneFn({ data: { projectId, sceneId: activeSceneId } });
+      if (result.ok) {
+        await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+        setAnalysisMessage(
+          result.unverified > 0
+            ? `${result.claims} noted. ${result.unverified} reading${
+                result.unverified === 1 ? "" : "s"
+              } were left out because no passage backed them up.`
+            : `${result.claims} noted from this scene.`,
+        );
+      } else {
+        setAnalysisMessage(result.message);
+      }
+    } catch {
+      setAnalysisMessage("Storymatic couldn't read this scene just now. Your writing is unaffected.");
+    } finally {
+      setAnalysing(false);
+    }
+  };
 
   const autosave = useSceneAutosave({
     sceneId: activeSceneId,
@@ -491,6 +537,7 @@ function Workspace() {
         direction.chapter_id === activeChapter?.id),
   );
   const openObservations = data.observations.filter((row) => row.status === "open");
+  const sceneTitles = Object.fromEntries(data.scenes.map((row) => [row.id, row.title]));
   const wordCount = liveWordCount ?? scene.data?.word_count ?? 0;
 
   return (
@@ -875,6 +922,50 @@ function Workspace() {
               onScopeChange={setAskScope}
               onAsk={(question) => void runAsk(question)}
               onOpenSource={(sceneId, quote) => void openEvidence(sceneId, quote)}
+            />
+          }
+          storySlot={
+            <StoryView
+              entities={storyModel.data?.entities ?? []}
+              claims={storyModel.data?.claims ?? []}
+              sceneTitles={sceneTitles}
+              loading={storyModel.isLoading}
+              analysing={analysing}
+              canAnalyse={Boolean(activeSceneId)}
+              sceneTitle={activeScene?.title ?? null}
+              message={analysisMessage}
+              onAnalyse={() => void runSceneAnalysis()}
+              onOpenEvidence={(sceneId, quote) => void openEvidence(sceneId, quote)}
+              onClaimAction={(id, action) =>
+                mutate.mutate(async () => {
+                  await claimJudgementFn({ data: { id, action } });
+                  await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+                })
+              }
+            />
+          }
+          charactersSlot={
+            <CharactersView
+              entities={storyModel.data?.entities ?? []}
+              claims={storyModel.data?.claims ?? []}
+              sceneTitles={sceneTitles}
+              loading={storyModel.isLoading}
+              storyPosition={activeScene?.position ?? null}
+              sceneTitle={activeScene?.title ?? null}
+              onOpenEvidence={(sceneId, quote) => void openEvidence(sceneId, quote)}
+              onClaimAction={(id, action) =>
+                mutate.mutate(async () => {
+                  await claimJudgementFn({ data: { id, action } });
+                  await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+                })
+              }
+              onSaveEntity={(id, fields) =>
+                mutate.mutate(async () => {
+                  await saveEntityFn({ data: { id, ...fields } });
+                  await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+                  toast.success("Saved.");
+                })
+              }
             />
           }
           proposalSlot={

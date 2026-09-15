@@ -338,6 +338,161 @@ export type Database = {
           },
         ]
       }
+      story_claims: {
+        Row: {
+          assertion: string
+          author_confirmed: boolean
+          basis: string
+          claim_kind: string
+          created_at: string
+          entity_id: string | null
+          evidence: Json
+          id: string
+          knowledge_holder: string | null
+          knowledge_state: string | null
+          project_id: string
+          revision_id: string | null
+          scene_id: string | null
+          story_position: number | null
+          subject: string
+          truth_type: string
+          updated_at: string
+          validity: string
+        }
+        Insert: {
+          assertion: string
+          author_confirmed?: boolean
+          basis?: string
+          claim_kind?: string
+          created_at?: string
+          entity_id?: string | null
+          evidence?: Json
+          id?: string
+          knowledge_holder?: string | null
+          knowledge_state?: string | null
+          project_id: string
+          revision_id?: string | null
+          scene_id?: string | null
+          story_position?: number | null
+          subject: string
+          truth_type?: string
+          updated_at?: string
+          validity?: string
+        }
+        Update: {
+          assertion?: string
+          author_confirmed?: boolean
+          basis?: string
+          claim_kind?: string
+          created_at?: string
+          entity_id?: string | null
+          evidence?: Json
+          id?: string
+          knowledge_holder?: string | null
+          knowledge_state?: string | null
+          project_id?: string
+          revision_id?: string | null
+          scene_id?: string | null
+          story_position?: number | null
+          subject?: string
+          truth_type?: string
+          updated_at?: string
+          validity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_claims_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "story_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_claims_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_claims_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "scene_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_claims_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_entities: {
+        Row: {
+          aliases: string[]
+          author_confirmed: boolean
+          created_at: string
+          current_state: string | null
+          first_scene_id: string | null
+          id: string
+          identity: string | null
+          kind: string
+          name: string
+          notes: string | null
+          project_id: string
+          truth_type: string
+          updated_at: string
+        }
+        Insert: {
+          aliases?: string[]
+          author_confirmed?: boolean
+          created_at?: string
+          current_state?: string | null
+          first_scene_id?: string | null
+          id?: string
+          identity?: string | null
+          kind?: string
+          name: string
+          notes?: string | null
+          project_id: string
+          truth_type?: string
+          updated_at?: string
+        }
+        Update: {
+          aliases?: string[]
+          author_confirmed?: boolean
+          created_at?: string
+          current_state?: string | null
+          first_scene_id?: string | null
+          id?: string
+          identity?: string | null
+          kind?: string
+          name?: string
+          notes?: string | null
+          project_id?: string
+          truth_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_entities_first_scene_id_fkey"
+            columns: ["first_scene_id"]
+            isOneToOne: false
+            referencedRelation: "scenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_entities_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
