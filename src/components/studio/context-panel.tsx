@@ -123,6 +123,9 @@ export function ContextPanel(props: {
   onRestoreRevision: (revisionId: string) => void;
   onResetSample: () => void;
   onExport: () => void;
+  askSlot: ReactNode;
+  proposalSlot: ReactNode;
+
 }) {
   const {
     view,
