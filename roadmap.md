@@ -24,9 +24,14 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
 
 ## Open
 
-- [ ] Increment 3 — living story context: entities, claims, evidence anchors,
-      truth types (canonical/inferred/possible/planned/rejected/contradicted),
-      Director/author intent, scene analysis, quiet observations → Discoveries.
+- [x] Increment 3a — story model foundation: story_entities + story_claims tables,
+      per-scene reading (server-side AI) with verbatim-quote verification (unbacked
+      readings dropped), truth types + basis labelling, Story view (places, objects,
+      threads, what the draft establishes) and Characters view (identity, current
+      state, notes, what a character knows up to the open scene), confirm/set-aside
+      per claim. Verified in browser on the sample.
+- [ ] Increment 3b — Director/author intent surfacing, quiet observations →
+      Discoveries, contradiction + needs-review handling across scenes.
 - [ ] Dynamic Outline: planned vs emergent, divergence noted not flagged as error.
 - [ ] Dynamic Synopsis at story/act/chapter/scene/character/thread levels, editable+lockable.
 - [ ] Scenes/Corkboard: inferred cards, drag reorder, consequence analysis on move.
