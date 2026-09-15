@@ -17,10 +17,7 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
 (incl. Relationships) · World · Research. Story Brain stays invisible.
 
 ## Open
-- [ ] Increment 2 — directed writing assistance: contextual AI at word/sentence/
-      paragraph/selection/scene/chapter/document level, proposal review
-      (accept/edit/regenerate/discard), stale-selection protection, Continue scene,
-      Ask Storymatic with scope + source links.
+
 - [ ] Increment 3 — living story context: entities, claims, evidence anchors,
       truth types (canonical/inferred/possible/planned/rejected/contradicted),
       Director/author intent, scene analysis, quiet observations → Discoveries.
