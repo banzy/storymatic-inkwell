@@ -770,6 +770,20 @@ function Workspace() {
         </div>
       </main>
 
+      <SelectionMenu
+        position={selectionText.trim() ? selectionPos : null}
+        words={selectionText.trim() ? selectionText.trim().split(/\s+/).length : 0}
+        busy={proposalLoading}
+        onAction={(action, instruction) => void requestProposal(action, instruction)}
+        onAsk={() => {
+          setAskScope("selection");
+          setSelectionPos(null);
+          setPanelView("ask");
+        }}
+        onDismiss={() => setSelectionPos(null)}
+      />
+
+
       {panelView && !focusMode && (
         <ContextPanel
           view={panelView}
