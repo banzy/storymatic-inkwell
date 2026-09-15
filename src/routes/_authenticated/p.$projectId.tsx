@@ -613,7 +613,7 @@ function Workspace() {
         />
       )}
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="relative flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-3 border-b border-border px-4 py-2.5">
           {(!sidebarOpen || focusMode) && (
             <Button
