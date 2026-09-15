@@ -11,16 +11,19 @@ manually editable, never requiring duplicate data entry.
       (The City of Ashes), Tiptap editor, chapters/scenes, focus mode, autosave +
       save states, revision history, import/export. Verified in browser.
 - [x] Temporary guest access (login skipped on request) — restore real sign-in later.
+- [x] Increment 2 — directed assistance: selection menu (rewrite/tension/tighten/
+      expand/dialogue/clarify/rhythm/preserve voice/custom), proposal review with
+      accept-only-this-passage + stale protection + revision history, Continue this
+      scene, Ask Storymatic with scope, evidence/interpretation labelling and source
+      links. Server-side AI, honest unavailable states. Verified in browser.
+
 
 ## Navigation target (amendment §20)
 Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characters
 (incl. Relationships) · World · Research. Story Brain stays invisible.
 
 ## Open
-- [ ] Increment 2 — directed writing assistance: contextual AI at word/sentence/
-      paragraph/selection/scene/chapter/document level, proposal review
-      (accept/edit/regenerate/discard), stale-selection protection, Continue scene,
-      Ask Storymatic with scope + source links.
+
 - [ ] Increment 3 — living story context: entities, claims, evidence anchors,
       truth types (canonical/inferred/possible/planned/rejected/contradicted),
       Director/author intent, scene analysis, quiet observations → Discoveries.

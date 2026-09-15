@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { CircleAlert, Quote, RotateCcw, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 export type PanelView =
   | "ask"
+  | "proposal"
   | "scene"
   | "director"
   | "observations"
@@ -15,6 +16,7 @@ export type PanelView =
   | "characters"
   | "possibilities"
   | "settings";
+
 
 export type DirectionRow = {
   id: string;
@@ -62,6 +64,8 @@ export type SceneMeta = {
 
 const VIEW_TITLES: Record<PanelView, string> = {
   ask: "Ask Storymatic",
+  proposal: "Suggested change",
+
   scene: "Scene context",
   director: "Your direction",
   observations: "Observations",
@@ -119,6 +123,9 @@ export function ContextPanel(props: {
   onRestoreRevision: (revisionId: string) => void;
   onResetSample: () => void;
   onExport: () => void;
+  askSlot: ReactNode;
+  proposalSlot: ReactNode;
+
 }) {
   const {
     view,
@@ -139,6 +146,9 @@ export function ContextPanel(props: {
     onRestoreRevision,
     onResetSample,
     onExport,
+    askSlot,
+    proposalSlot,
+
   } = props;
 
   const [meta, setMeta] = useState<SceneMeta | null>(scene);
@@ -169,23 +179,11 @@ export function ContextPanel(props: {
         </Button>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4">
-        {view === "ask" && (
-          <div className="space-y-4">
-            <NotYetAvailable
-              what="Ask Storymatic"
-              when="It arrives with directed writing assistance in the next increment, together with selection-based rewrites. Nothing here will invent an answer in the meantime."
-            />
-            <div className="rounded-md border border-border bg-card p-4 text-sm">
-              <p className="font-medium">Questions it will answer</p>
-              <ul className="mt-2 space-y-1.5 text-muted-foreground">
-                <li>What does Elena know at this point?</li>
-                <li>Where did I first suggest Marcus was hiding something?</li>
-                <li>What changes if Elena discovers the betrayal here?</li>
-              </ul>
-            </div>
-          </div>
-        )}
+      <div className={`flex-1 overflow-y-auto p-4 ${view === "ask" ? "flex flex-col" : ""}`}>
+        {view === "ask" && askSlot}
+
+        {view === "proposal" && proposalSlot}
+
 
         {view === "scene" && meta && (
           <div className="space-y-4">
