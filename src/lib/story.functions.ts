@@ -33,7 +33,7 @@ export type StoryClaim = {
   knowledge_holder: string | null;
   knowledge_state: string | null;
   story_position: number | null;
-  evidence: unknown;
+  evidence: { scene_id: string; quote: string }[];
   author_confirmed: boolean;
 };
 
