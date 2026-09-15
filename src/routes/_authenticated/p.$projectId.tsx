@@ -36,7 +36,16 @@ import {
 } from "@/components/studio/context-panel";
 import { ManuscriptEditor, findQuoteRange } from "@/components/studio/manuscript-editor";
 import { useSceneAutosave } from "@/components/studio/use-scene-autosave";
+import { QUICK_ACTIONS, SelectionMenu } from "@/components/studio/selection-menu";
+import { ProposalView, type Proposal } from "@/components/studio/proposal-view";
+import { AskView, type AskScope, type AskTurn } from "@/components/studio/ask-view";
+import {
+  askStorymatic,
+  proposePassageEdit,
+  type EditAction,
+} from "@/lib/assist.functions";
 import { docToMarkdown } from "@/lib/prose";
+
 import {
   createChapter,
   createScene,
