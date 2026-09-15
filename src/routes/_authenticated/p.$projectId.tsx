@@ -650,6 +650,18 @@ function Workspace() {
             Assist
           </Button>
 
+          {activeSceneId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={proposalLoading}
+              onClick={() => void requestProposal("continue")}
+            >
+              Continue this scene
+            </Button>
+          )}
+
+
           {!panelView && !focusMode && (
             <Button
               variant="ghost"
