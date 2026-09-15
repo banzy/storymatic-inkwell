@@ -46,8 +46,8 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
 - [ ] Living characters: identity vs current state vs timeline arc; character knowledge
       states (knows/believes/suspects/misunderstands/doesn't know).
 - [ ] Relationships: evolving trajectories, human-readable (no scores in UI).
-- [ ] Plot threads: setups/payoffs/promises/unresolved, written vs planned vs inferred.
-- [ ] Timeline: story chronology separate from reading order, uncertainty preserved.
+- [ ] Plot threads, deeper: setups/payoffs/promises/unresolved as first-class, planned vs written.
+- [ ] Timeline, deeper: extracted dates, events ordered independently of scene order.
 - [ ] World / story bible: locations, factions, rules, recurring objects.
 - [ ] Themes & motifs as observations only.
 - [ ] Research & Notes, clearly outside story canon.
