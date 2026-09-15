@@ -299,6 +299,160 @@ function Workspace() {
     }
   }, []);
 
+  /* ------------------------------------------------ contextual assistance */
+
+  const currentSceneText = () => {
+    const editor = editorRef.current;
+    if (!editor) return scene.data?.plain_text ?? "";
+    return editor.state.doc.textBetween(0, editor.state.doc.content.size, "\n\n");
+  };
+
+  const requestProposal = async (
+    action: EditAction,
+    instruction?: string,
+    original?: string,
+  ) => {
+    if (!activeSceneId) return;
+    const append = action === "continue";
+    const passage = (original ?? selectionText).trim();
+    if (!append && !passage) {
+      toast.info("Select a passage in the manuscript first.");
+      return;
+    }
+    setFocusMode(false);
+    setPanelView("proposal");
+    setSelectionPos(null);
+    setProposalError(null);
+    setProposalStale(false);
+    setProposalLoading(true);
+    const label =
+      action === "continue"
+        ? "Continue this scene"
+        : action === "custom"
+          ? "Custom instruction"
+          : (QUICK_ACTIONS.find((item) => item.action === action)?.label ?? "Rewrite");
+    setProposal({
+      sceneId: activeSceneId,
+      action,
+      actionLabel: label,
+      instruction: instruction ?? null,
+      original: passage,
+      proposed: "",
+      explanation: "",
+      append,
+    });
+    try {
+      const result = await proposeFn({
+        data: {
+          projectId,
+          sceneId: activeSceneId,
+          action,
+          ...(instruction ? { instruction } : {}),
+          selection: passage,
+          sceneText: currentSceneText(),
+        },
+      });
+      if (!result.ok) {
+        setProposal(null);
+        setProposalError(result.message);
+        return;
+      }
+      setProposal((current) =>
+        current
+          ? { ...current, proposed: result.proposedText, explanation: result.explanation }
+          : current,
+      );
+    } catch {
+      setProposal(null);
+      setProposalError("Assistance isn't available right now. Your writing is unaffected.");
+    } finally {
+      setProposalLoading(false);
+    }
+  };
+
+  const acceptProposal = async () => {
+    const editor = editorRef.current;
+    if (!editor || !proposal || !proposal.proposed.trim()) return;
+    if (proposal.sceneId !== activeSceneId) {
+      setProposalStale(true);
+      return;
+    }
+    const paragraphs = proposal.proposed
+      .split(/\n{2,}/)
+      .map((block) => block.trim())
+      .filter(Boolean)
+      .map((block) => ({ type: "paragraph", content: [{ type: "text", text: block }] }));
+    if (paragraphs.length === 0) return;
+
+    if (proposal.append) {
+      editor.chain().focus().insertContentAt(editor.state.doc.content.size, paragraphs).run();
+    } else {
+      // The proposal may only replace the passage it was written for; if the text
+      // moved on since then, refuse rather than overwrite newer writing.
+      const range = findQuoteRange(editor, proposal.original);
+      if (!range) {
+        setProposalStale(true);
+        toast.info("That passage has changed. Ask again to work from the current text.");
+        return;
+      }
+      editor.chain().focus().insertContentAt(range, paragraphs).run();
+    }
+
+    autosave.change(editor.getJSON() as never);
+    await autosave.flush();
+    void queryClient.invalidateQueries({ queryKey: ["revisions", activeSceneId] });
+    setProposal(null);
+    setPanelView("scene");
+    toast.success("Change applied. The previous version is in revision history.");
+  };
+
+  const runAsk = async (question: string) => {
+    if (!workspace.data) return;
+    const scopeUsed: AskScope = askScope === "selection" && !selectionText ? "scene" : askScope;
+    const history = askTurns
+      .filter((turn): turn is Extract<AskTurn, { role: "user" | "assistant" }> =>
+        turn.role !== "error",
+      )
+      .slice(-6)
+      .map((turn) => ({ role: turn.role, text: turn.text }));
+    setAskTurns((turns) => [...turns, { role: "user", text: question, scope: scopeUsed }]);
+    setAskLoading(true);
+    try {
+      const result = await askFn({
+        data: {
+          projectId,
+          sceneId: activeSceneId,
+          scope: scopeUsed,
+          question,
+          ...(selectionText ? { selection: selectionText } : {}),
+          sceneText: currentSceneText(),
+          history,
+        },
+      });
+      setAskTurns((turns) =>
+        result.ok
+          ? [
+              ...turns,
+              {
+                role: "assistant",
+                text: result.answer,
+                basis: result.basis,
+                sources: result.sources,
+              },
+            ]
+          : [...turns, { role: "error", text: result.message }],
+      );
+    } catch {
+      setAskTurns((turns) => [
+        ...turns,
+        { role: "error", text: "Storymatic couldn't answer just now. Your writing is unaffected." },
+      ]);
+    } finally {
+      setAskLoading(false);
+    }
+  };
+
+
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape" && focusMode) setFocusMode(false);
