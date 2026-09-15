@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, Loader2, Quote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,18 +7,30 @@ import { Textarea } from "@/components/ui/textarea";
 import type { OutlineScene } from "@/lib/outline.functions";
 import type { StoryClaim, StoryEntity } from "@/lib/story.functions";
 
-export type StorySpaceTab = "scenes" | "plot" | "timeline";
+export type StorySpaceTab =
+  | "synopsis"
+  | "scenes"
+  | "plot"
+  | "timeline"
+  | "relationships"
+  | "discoveries";
 
 const TAB_LABELS: Record<StorySpaceTab, string> = {
+  synopsis: "Synopsis",
   scenes: "Scenes",
   plot: "Plot",
   timeline: "Timeline",
+  relationships: "Relationships",
+  discoveries: "Discoveries",
 };
 
 const TAB_BLURBS: Record<StorySpaceTab, string> = {
+  synopsis: "A summary that keeps up with the draft, at whatever level you need.",
   scenes: "One card for each scene, filled in from what you've written.",
   plot: "The threads running through the draft, and where each one is picked up.",
   timeline: "When things happen in the story, not the order you read them in.",
+  relationships: "Where each relationship stands by this point in the draft.",
+  discoveries: "Quiet notes on what the scenes together seem to say.",
 };
 
 const TRUTH_LABEL: Record<string, string> = {
@@ -251,6 +263,10 @@ export function StorySpace(props: {
   onMoveScene: (sceneId: string, direction: "up" | "down") => void;
   onSaveCard: (sceneId: string, patch: CardPatch) => void;
   onOpenEvidence: (sceneId: string, quote: string) => void;
+  /** The Synopsis, Relationships and Discoveries bodies, composed by the workspace. */
+  extraSlot?: ReactNode;
+  /** The action button for whichever tab is open (other than Scenes). */
+  headerAction?: ReactNode;
 }) {
   const {
     tab,
@@ -271,6 +287,8 @@ export function StorySpace(props: {
     onMoveScene,
     onSaveCard,
     onOpenEvidence,
+    extraSlot,
+    headerAction,
   } = props;
 
   const chapterById = new Map(chapters.map((chapter) => [chapter.id, chapter]));
@@ -299,11 +317,13 @@ export function StorySpace(props: {
           <h1 className="font-serif text-xl tracking-tight">Story</h1>
           <p className="text-xs text-muted-foreground">{TAB_BLURBS[tab]}</p>
         </div>
-        {tab === "scenes" && (
+        {tab === "scenes" ? (
           <Button variant="outline" size="sm" disabled={filling} onClick={onFillCards}>
             {filling && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
             {filling ? "Reading…" : "Fill in the blanks"}
           </Button>
+        ) : (
+          headerAction
         )}
         <Button variant="ghost" size="sm" onClick={onClose}>
           Back to writing
@@ -358,6 +378,8 @@ export function StorySpace(props: {
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
         {loading ? (
           <p className="text-sm text-muted-foreground">Gathering your story…</p>
+        ) : tab === "synopsis" || tab === "relationships" || tab === "discoveries" ? (
+          extraSlot
         ) : tab === "scenes" ? (
           scenes.length === 0 ? (
             <p className="text-sm text-muted-foreground">No scenes yet.</p>

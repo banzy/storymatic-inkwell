@@ -37,7 +37,9 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
       (not in the draft yet, not in the plan, happens earlier than planned), "Compare
       with the draft" review whose readings stay unconfirmed until the author agrees.
       Verified in browser on the sample.
-- [ ] Dynamic Synopsis at story/act/chapter/scene/character/thread levels, editable+lockable.
+- [x] Dynamic Synopsis (story + chapter, editable and lockable): written from the draft,
+      locked wording never overwritten, empty until the draft gives it something.
+      Verified in browser on the sample. Still open: act/scene/character/thread scopes.
 - [x] Story space (Scenes · Plot · Timeline): scene cards from the manuscript, author-
       editable, "Fill in the blanks" fills only empty fields; keyboard-reachable reorder
       with consequence notes after a move (never a rewrite); plot threads with backing
@@ -45,7 +47,12 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
       Still open there: pointer drag-and-drop for cards.
 - [ ] Living characters: identity vs current state vs timeline arc; character knowledge
       states (knows/believes/suspects/misunderstands/doesn't know).
-- [ ] Relationships: evolving trajectories, human-readable (no scores in UI).
+- [x] Relationships: directional, human-readable (no scores), "where it stands" plus the
+      moments that moved it with backing quotes; readings stay unconfirmed until the
+      author agrees; author wording is never overwritten. Verified in browser.
+- [x] Discoveries: quiet cross-scene notes with passages, why it might matter and
+      uncertainty; intentional / set aside / bring back. Verified in browser.
+      Still open: background observer runs (today the author asks for a look).
 - [ ] Plot threads, deeper: setups/payoffs/promises/unresolved as first-class, planned vs written.
 - [ ] Timeline, deeper: extracted dates, events ordered independently of scene order.
 - [ ] World / story bible: locations, factions, rules, recurring objects.
