@@ -199,6 +199,39 @@ function Workspace() {
     enabled: Boolean(activeSceneId) && panelView === "revisions",
   });
 
+  const storyModel = useQuery({
+    queryKey: ["story-model", projectId],
+    queryFn: () => storyModelFn({ data: { projectId } }),
+    enabled: panelView === "story" || panelView === "characters",
+  });
+
+  const runSceneAnalysis = async () => {
+    if (!activeSceneId) return;
+    setAnalysing(true);
+    setAnalysisMessage("Updating story understanding…");
+    try {
+      // Only the open scene is read; the rest of the manuscript is left alone.
+      await autosave.flush();
+      const result = await analyseSceneFn({ data: { projectId, sceneId: activeSceneId } });
+      if (result.ok) {
+        await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+        setAnalysisMessage(
+          result.unverified > 0
+            ? `${result.claims} noted. ${result.unverified} reading${
+                result.unverified === 1 ? "" : "s"
+              } were left out because no passage backed them up.`
+            : `${result.claims} noted from this scene.`,
+        );
+      } else {
+        setAnalysisMessage(result.message);
+      }
+    } catch {
+      setAnalysisMessage("Storymatic couldn't read this scene just now. Your writing is unaffected.");
+    } finally {
+      setAnalysing(false);
+    }
+  };
+
   const autosave = useSceneAutosave({
     sceneId: activeSceneId,
     serverPlainText: scene.data?.plain_text ?? "",
