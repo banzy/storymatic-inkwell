@@ -147,6 +147,10 @@ function Workspace() {
   const resetSampleFn = useServerFn(resetSampleProject);
   const proposeFn = useServerFn(proposePassageEdit);
   const askFn = useServerFn(askStorymatic);
+  const storyModelFn = useServerFn(getStoryModel);
+  const analyseSceneFn = useServerFn(analyseScene);
+  const claimJudgementFn = useServerFn(setClaimJudgement);
+  const saveEntityFn = useServerFn(saveEntity);
 
 
   const workspace = useQuery({
