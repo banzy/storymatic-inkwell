@@ -854,6 +854,42 @@ function Workspace() {
             })
           }
           onExport={exportMarkdown}
+          askSlot={
+            <AskView
+              turns={askTurns}
+              loading={askLoading}
+              scope={askScope}
+              hasSelection={Boolean(selectionText.trim())}
+              onScopeChange={setAskScope}
+              onAsk={(question) => void runAsk(question)}
+              onOpenSource={(sceneId, quote) => void openEvidence(sceneId, quote)}
+            />
+          }
+          proposalSlot={
+            <ProposalView
+              proposal={proposal}
+              loading={proposalLoading}
+              error={proposalError}
+              stale={proposalStale}
+              onEdit={(text) =>
+                setProposal((current) => (current ? { ...current, proposed: text } : current))
+              }
+              onAccept={() => void acceptProposal()}
+              onRegenerate={() =>
+                void requestProposal(
+                  (proposal?.action ?? "rewrite") as EditAction,
+                  proposal?.instruction ?? undefined,
+                  proposal?.original,
+                )
+              }
+              onDiscard={() => {
+                setProposal(null);
+                setProposalError(null);
+                setPanelView("scene");
+              }}
+            />
+          }
+
         />
       )}
     </div>
