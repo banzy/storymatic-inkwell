@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { CircleAlert, Quote, RotateCcw, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 export type PanelView =
   | "ask"
+  | "proposal"
   | "scene"
   | "director"
   | "observations"
@@ -15,6 +16,7 @@ export type PanelView =
   | "characters"
   | "possibilities"
   | "settings";
+
 
 export type DirectionRow = {
   id: string;
