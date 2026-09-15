@@ -44,6 +44,13 @@ import {
   proposePassageEdit,
   type EditAction,
 } from "@/lib/assist.functions";
+import { CharactersView, StoryView } from "@/components/studio/story-view";
+import {
+  analyseScene,
+  getStoryModel,
+  saveEntity,
+  setClaimJudgement,
+} from "@/lib/story.functions";
 import { docToMarkdown } from "@/lib/prose";
 
 import {
