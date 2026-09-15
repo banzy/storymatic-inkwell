@@ -476,19 +476,9 @@ export function ContextPanel(props: {
           </div>
         )}
 
-        {view === "story" && (
-          <NotYetAvailable
-            what="The Story view"
-            when="Events, threads, places and objects are assembled from the manuscript in the story-context increment. Until they are, Storymatic won't guess at them."
-          />
-        )}
+        {view === "story" && storySlot}
 
-        {view === "characters" && (
-          <NotYetAvailable
-            what="Character views"
-            when="They arrive with the story model, so that what a character knows can be shown at a chosen point in the manuscript rather than as one timeless profile."
-          />
-        )}
+        {view === "characters" && charactersSlot}
 
         {view === "possibilities" && (
           <NotYetAvailable
