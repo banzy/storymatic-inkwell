@@ -150,6 +150,8 @@ export function ContextPanel(props: {
     onExport,
     askSlot,
     proposalSlot,
+    storySlot,
+    charactersSlot,
 
   } = props;
 
