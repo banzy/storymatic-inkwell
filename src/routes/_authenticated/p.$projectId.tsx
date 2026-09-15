@@ -812,6 +812,7 @@ function Workspace() {
             size="sm"
             onClick={() => {
               setFocusMode(false);
+              setPanelView(null);
               setStoryOpen(true);
             }}
           >
