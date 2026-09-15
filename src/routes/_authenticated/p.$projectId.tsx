@@ -167,9 +167,18 @@ function Workspace() {
   const [fontSize, setFontSize] = useState(20);
   const [leading, setLeading] = useState(1.75);
   const [selectionText, setSelectionText] = useState("");
+  const [selectionPos, setSelectionPos] = useState<{ top: number; left: number } | null>(null);
   const [liveWordCount, setLiveWordCount] = useState<number | null>(null);
+  const [proposal, setProposal] = useState<Proposal | null>(null);
+  const [proposalLoading, setProposalLoading] = useState(false);
+  const [proposalError, setProposalError] = useState<string | null>(null);
+  const [proposalStale, setProposalStale] = useState(false);
+  const [askTurns, setAskTurns] = useState<AskTurn[]>([]);
+  const [askScope, setAskScope] = useState<AskScope>("scene");
+  const [askLoading, setAskLoading] = useState(false);
   const editorRef = useRef<Editor | null>(null);
   const pendingHighlight = useRef<string | null>(null);
+
 
   const revisions = useQuery({
     queryKey: ["revisions", activeSceneId],
