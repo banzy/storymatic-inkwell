@@ -179,23 +179,11 @@ export function ContextPanel(props: {
         </Button>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4">
-        {view === "ask" && (
-          <div className="space-y-4">
-            <NotYetAvailable
-              what="Ask Storymatic"
-              when="It arrives with directed writing assistance in the next increment, together with selection-based rewrites. Nothing here will invent an answer in the meantime."
-            />
-            <div className="rounded-md border border-border bg-card p-4 text-sm">
-              <p className="font-medium">Questions it will answer</p>
-              <ul className="mt-2 space-y-1.5 text-muted-foreground">
-                <li>What does Elena know at this point?</li>
-                <li>Where did I first suggest Marcus was hiding something?</li>
-                <li>What changes if Elena discovers the betrayal here?</li>
-              </ul>
-            </div>
-          </div>
-        )}
+      <div className={`flex-1 overflow-y-auto p-4 ${view === "ask" ? "flex flex-col" : ""}`}>
+        {view === "ask" && askSlot}
+
+        {view === "proposal" && proposalSlot}
+
 
         {view === "scene" && meta && (
           <div className="space-y-4">
