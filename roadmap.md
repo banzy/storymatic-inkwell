@@ -45,14 +45,20 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
       with consequence notes after a move (never a rewrite); plot threads with backing
       passages; story-time timeline leaving untimed scenes unplaced. Verified in browser.
       Still open there: pointer drag-and-drop for cards.
-- [ ] Living characters: identity vs current state vs timeline arc; character knowledge
-      states (knows/believes/suspects/misunderstands/doesn't know).
+- [x] Living characters — People view in the Story space: who they are, where they
+      stand at a chosen point ("as of" any scene), what they know there grouped by
+      knows/believes/suspects/has it wrong/doesn't know, their arc in story order,
+      "Read the scenes" to gather from the whole draft. Verified in browser.
+- [x] Needs-another-look: on save, claims whose backing wording has changed are
+      marked for review instead of being kept or deleted silently.
+- [x] Quiet observer: once writing settles (2 min idle, at most every 10 min),
+      Storymatic looks across the scenes on its own; findings wait in Discoveries.
 - [x] Relationships: directional, human-readable (no scores), "where it stands" plus the
       moments that moved it with backing quotes; readings stay unconfirmed until the
       author agrees; author wording is never overwritten. Verified in browser.
 - [x] Discoveries: quiet cross-scene notes with passages, why it might matter and
       uncertainty; intentional / set aside / bring back. Verified in browser.
-      Still open: background observer runs (today the author asks for a look).
+      Background observer runs now happen quietly after writing settles.
 - [ ] Plot threads, deeper: setups/payoffs/promises/unresolved as first-class, planned vs written.
 - [ ] Timeline, deeper: extracted dates, events ordered independently of scene order.
 - [ ] World / story bible: locations, factions, rules, recurring objects.

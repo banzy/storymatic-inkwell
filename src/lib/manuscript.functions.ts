@@ -333,8 +333,42 @@ export const saveScene = createServerFn({ method: "POST" })
       }
     }
 
-    return { savedAt: new Date().toISOString(), revisionId };
+    // Anything the story model based on wording that has now changed is marked
+    // as needing another look — never silently kept, never silently deleted.
+    let needsReview = 0;
+    if (scene.plain_text !== data.plainText) {
+      const { data: claims } = await supabase
+        .from("story_claims")
+        .select("id, evidence")
+        .eq("scene_id", data.sceneId)
+        .eq("validity", "current");
+      const haystack = flattenText(data.plainText);
+      const stale: string[] = [];
+      for (const claim of claims ?? []) {
+        const evidence = Array.isArray(claim.evidence)
+          ? (claim.evidence as { quote?: string }[])
+          : [];
+        const quotes = evidence.map((item) => (item.quote ?? "").trim()).filter(Boolean);
+        if (quotes.length === 0) continue;
+        if (!quotes.every((quote) => haystack.includes(flattenText(quote)))) stale.push(claim.id);
+      }
+      if (stale.length > 0) {
+        await supabase.from("story_claims").update({ validity: "needs_review" }).in("id", stale);
+        needsReview = stale.length;
+      }
+    }
+
+    return { savedAt: new Date().toISOString(), revisionId, needsReview };
   });
+
+/** Quote matching ignores curly quotes and whitespace differences, never offsets. */
+const flattenText = (text: string) =>
+  text
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/\s+/g, " ")
+    .trim();
+
 
 /* --------------------------------------------------------- chapters & scenes */
 

@@ -45,6 +45,8 @@ import {
   type EditAction,
 } from "@/lib/assist.functions";
 import { CharactersView, StoryView } from "@/components/studio/story-view";
+import { PeopleView } from "@/components/studio/people-view";
+
 import {
   analyseScene,
   getStoryModel,
@@ -463,6 +465,40 @@ function Workspace() {
     }
   };
 
+  /** Reads each scene in turn, so the people gather from the whole draft. */
+  const runReadEveryScene = async () => {
+    const scenes = outline.data?.scenes ?? [];
+    if (scenes.length === 0) return;
+    setExtrasBusy(true);
+    try {
+      await autosave.flush();
+      let noted = 0;
+      let failure: string | null = null;
+      for (const [index, item] of scenes.entries()) {
+        setStoryMessage(`Reading ${item.title} (${index + 1} of ${scenes.length})…`);
+        try {
+          const result = await analyseSceneFn({ data: { projectId, sceneId: item.id } });
+          if (result.ok) noted += result.claims;
+          else if (result.kind !== "empty") failure = result.message;
+        } catch {
+          failure = "Storymatic couldn't finish reading the draft just now.";
+        }
+        if (failure) break;
+      }
+      await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+      setStoryMessage(
+        failure ??
+          (noted === 0
+            ? "There isn't enough written yet for Storymatic to gather anyone."
+            : `${noted} thing${noted === 1 ? "" : "s"} gathered from your scenes. Each stays Storymatic's reading until you agree.`),
+      );
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
+
+
+
   const autosave = useSceneAutosave({
     sceneId: activeSceneId,
     serverPlainText: scene.data?.plain_text ?? "",
@@ -471,6 +507,31 @@ function Workspace() {
       void queryClient.invalidateQueries({ queryKey: ["revisions", activeSceneId] });
     },
   });
+
+  // A quiet observer: once the writing has settled, Storymatic looks across the
+  // scenes on its own. Nothing interrupts; anything it finds waits in Discoveries.
+  const lastObserverRun = useRef(0);
+  useEffect(() => {
+    if (!autosave.lastSavedAt) return;
+    const timer = setTimeout(
+      () => {
+        if (Date.now() - lastObserverRun.current < 10 * 60_000) return;
+        lastObserverRun.current = Date.now();
+        void findDiscoveriesFn({ data: { projectId } })
+          .then(() => {
+            void queryClient.invalidateQueries({ queryKey: ["workspace", projectId] });
+            void queryClient.invalidateQueries({ queryKey: ["story-extras", projectId] });
+          })
+          .catch(() => {
+            /* silent: an observer that can't look now simply says nothing */
+          });
+      },
+      2 * 60_000,
+    );
+    return () => clearTimeout(timer);
+  }, [autosave.lastSavedAt, findDiscoveriesFn, projectId, queryClient]);
+
+
 
   const refreshWorkspace = useCallback(
     () => queryClient.invalidateQueries({ queryKey: ["workspace", projectId] }),
@@ -1177,7 +1238,17 @@ function Workspace() {
               void openEvidence(sceneId, quote);
             }}
             headerAction={
-              storyTab === "relationships" ? (
+              storyTab === "people" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runReadEveryScene()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Reading…" : "Read the scenes"}
+                </Button>
+              ) : storyTab === "relationships" ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -1200,9 +1271,37 @@ function Workspace() {
               ) : null
             }
             extraSlot={
-              extras.isLoading ? (
+              storyTab === "people" ? (
+                <PeopleView
+                  entities={storyModel.data?.entities ?? []}
+                  claims={storyModel.data?.claims ?? []}
+                  scenes={outline.data?.scenes ?? []}
+                  loading={storyModel.isLoading}
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                  onOpenEvidence={(sceneId, quote) => {
+                    setStoryOpen(false);
+                    void openEvidence(sceneId, quote);
+                  }}
+                  onClaimAction={(id, action) =>
+                    mutate.mutate(async () => {
+                      await claimJudgementFn({ data: { id, action } });
+                      await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+                    })
+                  }
+                  onSaveEntity={(id, fields) =>
+                    mutate.mutate(async () => {
+                      await saveEntityFn({ data: { id, ...fields } });
+                      await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+                    })
+                  }
+                />
+              ) : extras.isLoading ? (
                 <p className="text-sm text-muted-foreground">Gathering your story…</p>
               ) : storyTab === "synopsis" ? (
+
                 <SynopsisView
                   targets={synopsisTargets}
                   synopses={extras.data?.synopses ?? []}

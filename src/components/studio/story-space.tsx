@@ -10,6 +10,7 @@ import type { StoryClaim, StoryEntity } from "@/lib/story.functions";
 export type StorySpaceTab =
   | "synopsis"
   | "scenes"
+  | "people"
   | "plot"
   | "timeline"
   | "relationships"
@@ -18,6 +19,7 @@ export type StorySpaceTab =
 const TAB_LABELS: Record<StorySpaceTab, string> = {
   synopsis: "Synopsis",
   scenes: "Scenes",
+  people: "People",
   plot: "Plot",
   timeline: "Timeline",
   relationships: "Relationships",
@@ -27,11 +29,13 @@ const TAB_LABELS: Record<StorySpaceTab, string> = {
 const TAB_BLURBS: Record<StorySpaceTab, string> = {
   synopsis: "A summary that keeps up with the draft, at whatever level you need.",
   scenes: "One card for each scene, filled in from what you've written.",
+  people: "Who someone is, where they stand, and what they know at a point in the story.",
   plot: "The threads running through the draft, and where each one is picked up.",
   timeline: "When things happen in the story, not the order you read them in.",
   relationships: "Where each relationship stands by this point in the draft.",
   discoveries: "Quiet notes on what the scenes together seem to say.",
 };
+
 
 const TRUTH_LABEL: Record<string, string> = {
   canonical: "Established in the draft",
@@ -378,7 +382,11 @@ export function StorySpace(props: {
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
         {loading ? (
           <p className="text-sm text-muted-foreground">Gathering your story…</p>
-        ) : tab === "synopsis" || tab === "relationships" || tab === "discoveries" ? (
+        ) : tab === "synopsis" ||
+          tab === "people" ||
+          tab === "relationships" ||
+          tab === "discoveries" ? (
+
           extraSlot
         ) : tab === "scenes" ? (
           scenes.length === 0 ? (
