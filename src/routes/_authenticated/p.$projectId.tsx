@@ -463,6 +463,40 @@ function Workspace() {
     }
   };
 
+  /** Reads each scene in turn, so the people gather from the whole draft. */
+  const runReadEveryScene = async () => {
+    const scenes = outline.data?.scenes ?? [];
+    if (scenes.length === 0) return;
+    setExtrasBusy(true);
+    try {
+      await autosave.flush();
+      let noted = 0;
+      let failure: string | null = null;
+      for (const [index, item] of scenes.entries()) {
+        setStoryMessage(`Reading ${item.title} (${index + 1} of ${scenes.length})…`);
+        try {
+          const result = await analyseSceneFn({ data: { projectId, sceneId: item.id } });
+          if (result.ok) noted += result.claims;
+          else if (result.kind !== "empty") failure = result.message;
+        } catch {
+          failure = "Storymatic couldn't finish reading the draft just now.";
+        }
+        if (failure) break;
+      }
+      await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+      setStoryMessage(
+        failure ??
+          (noted === 0
+            ? "There isn't enough written yet for Storymatic to gather anyone."
+            : `${noted} thing${noted === 1 ? "" : "s"} gathered from your scenes. Each stays Storymatic's reading until you agree.`),
+      );
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
+
+
+
   const autosave = useSceneAutosave({
     sceneId: activeSceneId,
     serverPlainText: scene.data?.plain_text ?? "",
