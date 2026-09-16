@@ -382,7 +382,11 @@ export function StorySpace(props: {
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
         {loading ? (
           <p className="text-sm text-muted-foreground">Gathering your story…</p>
-        ) : tab === "synopsis" || tab === "relationships" || tab === "discoveries" ? (
+        ) : tab === "synopsis" ||
+          tab === "people" ||
+          tab === "relationships" ||
+          tab === "discoveries" ? (
+
           extraSlot
         ) : tab === "scenes" ? (
           scenes.length === 0 ? (
