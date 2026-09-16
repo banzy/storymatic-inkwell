@@ -45,6 +45,8 @@ import {
   type EditAction,
 } from "@/lib/assist.functions";
 import { CharactersView, StoryView } from "@/components/studio/story-view";
+import { PeopleView } from "@/components/studio/people-view";
+
 import {
   analyseScene,
   getStoryModel,
