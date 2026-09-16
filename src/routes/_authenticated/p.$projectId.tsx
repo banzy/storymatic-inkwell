@@ -1211,7 +1211,17 @@ function Workspace() {
               void openEvidence(sceneId, quote);
             }}
             headerAction={
-              storyTab === "relationships" ? (
+              storyTab === "people" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runReadEveryScene()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Reading…" : "Read the scenes"}
+                </Button>
+              ) : storyTab === "relationships" ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -1234,9 +1244,37 @@ function Workspace() {
               ) : null
             }
             extraSlot={
-              extras.isLoading ? (
+              storyTab === "people" ? (
+                <PeopleView
+                  entities={storyModel.data?.entities ?? []}
+                  claims={storyModel.data?.claims ?? []}
+                  scenes={outline.data?.scenes ?? []}
+                  loading={storyModel.isLoading}
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                  onOpenEvidence={(sceneId, quote) => {
+                    setStoryOpen(false);
+                    void openEvidence(sceneId, quote);
+                  }}
+                  onClaimAction={(id, action) =>
+                    mutate.mutate(async () => {
+                      await claimJudgementFn({ data: { id, action } });
+                      await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+                    })
+                  }
+                  onSaveEntity={(id, fields) =>
+                    mutate.mutate(async () => {
+                      await saveEntityFn({ data: { id, ...fields } });
+                      await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+                    })
+                  }
+                />
+              ) : extras.isLoading ? (
                 <p className="text-sm text-muted-foreground">Gathering your story…</p>
               ) : storyTab === "synopsis" ? (
+
                 <SynopsisView
                   targets={synopsisTargets}
                   synopses={extras.data?.synopses ?? []}
