@@ -508,6 +508,31 @@ function Workspace() {
     },
   });
 
+  // A quiet observer: once the writing has settled, Storymatic looks across the
+  // scenes on its own. Nothing interrupts; anything it finds waits in Discoveries.
+  const lastObserverRun = useRef(0);
+  useEffect(() => {
+    if (!autosave.lastSavedAt) return;
+    const timer = setTimeout(
+      () => {
+        if (Date.now() - lastObserverRun.current < 10 * 60_000) return;
+        lastObserverRun.current = Date.now();
+        void findDiscoveriesFn({ data: { projectId } })
+          .then(() => {
+            void queryClient.invalidateQueries({ queryKey: ["workspace", projectId] });
+            void queryClient.invalidateQueries({ queryKey: ["story-extras", projectId] });
+          })
+          .catch(() => {
+            /* silent: an observer that can't look now simply says nothing */
+          });
+      },
+      2 * 60_000,
+    );
+    return () => clearTimeout(timer);
+  }, [autosave.lastSavedAt, findDiscoveriesFn, projectId, queryClient]);
+
+
+
   const refreshWorkspace = useCallback(
     () => queryClient.invalidateQueries({ queryKey: ["workspace", projectId] }),
     [queryClient, projectId],
