@@ -1092,7 +1092,17 @@ function Workspace() {
           activeSceneId={activeSceneId}
           observationCount={openObservations.length}
           actions={actions}
-          onOpenPanel={(view) => setPanelView(view)}
+          onOpenPanel={(view) => {
+            if (view === "possibilities") {
+              setPanelView(null);
+              setStoryMessage(null);
+              setStoryTab("possibilities");
+              setStoryOpen(true);
+              return;
+            }
+            setPanelView(view);
+          }}
+
           onCollapse={() => setSidebarOpen(false)}
         />
       )}
