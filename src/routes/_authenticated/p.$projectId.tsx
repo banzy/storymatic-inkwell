@@ -346,6 +346,42 @@ function Workspace() {
     }
   };
 
+  const research = useQuery({
+    queryKey: ["research", projectId],
+    queryFn: () => researchFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+  const refreshResearch = () =>
+    queryClient.invalidateQueries({ queryKey: ["research", projectId] });
+
+  const runReadWorld = async () => {
+    setExtrasBusy(true);
+    setStoryMessage("Reading the world your scenes have built…");
+    try {
+      await autosave.flush();
+      const result = await readWorldFn({ data: { projectId } });
+      if (result.ok) {
+        await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+        setStoryMessage(
+          result.added === 0 && result.noted === 0
+            ? "The draft hasn't established anything solid about its world yet."
+            : `${result.added} place${result.added === 1 ? "" : "s"}, thing${
+                result.added === 1 ? "" : "s"
+              } or group${result.added === 1 ? "" : "s"} and ${result.noted} rule${
+                result.noted === 1 ? "" : "s"
+              }. These stay Storymatic's readings until you agree.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't read the world just now. Your draft is unaffected.");
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
+
+
 
   const synopsisTargets: SynopsisTarget[] = useMemo(() => {
     const chapters = outline.data?.chapters ?? [];
