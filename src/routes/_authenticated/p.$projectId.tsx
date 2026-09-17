@@ -97,6 +97,18 @@ import { ResearchView, type ResearchDraft } from "@/components/studio/research-v
 import { readWorld } from "@/lib/world.functions";
 import { OverviewView } from "@/components/studio/overview-view";
 import { getStoryOverview } from "@/lib/overview.functions";
+import {
+  PossibilitiesView,
+  type PossibilityDraft,
+} from "@/components/studio/possibilities-view";
+import {
+  deletePossibility,
+  exploreScene,
+  getPossibilities,
+  savePossibility,
+  setPossibilityStatus,
+} from "@/lib/possibilities.functions";
+
 
 import { ChronologyView, type EventDraft } from "@/components/studio/chronology-view";
 import {
