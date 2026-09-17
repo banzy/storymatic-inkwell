@@ -73,7 +73,9 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
 - [ ] Themes & motifs as observations only.
 - [x] Research & Notes: your own notes and sources, kept clearly outside story canon and
       never read back as something the book establishes. Verified in browser.
-- [ ] Story dashboard: calm editorial overview.
+- [x] Story dashboard: calm editorial Overview tab — where the draft stands, what was touched
+      last, what's still owed, a few things worth a look, loose ends. Verified in browser.
+
 - [ ] Increment 4 — Possibilities (bounded exploration, selective adoption).
 - [ ] Writer types: no setup wizard; new project can start with nothing.
 
