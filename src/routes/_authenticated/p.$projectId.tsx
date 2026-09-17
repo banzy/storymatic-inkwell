@@ -1578,7 +1578,18 @@ function Workspace() {
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
                   {extrasBusy ? "Reading…" : "Read what's set up"}
                 </Button>
+              ) : storyTab === "themes" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runReadThemes()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Reading…" : "Read for themes"}
+                </Button>
               ) : storyTab === "discoveries" ? (
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -1761,7 +1772,43 @@ function Workspace() {
                     })
                   }
                 />
+              ) : storyTab === "themes" ? (
+                <ThemesView
+                  themes={themes.data?.themes ?? []}
+                  scenes={(outline.data?.scenes ?? []).map((scene) => ({
+                    id: scene.id,
+                    title: scene.title,
+                  }))}
+                  sceneTitles={new Map(Object.entries(sceneTitles))}
+                  onSave={(draft: ThemeDraft) =>
+                    mutate.mutate(async () => {
+                      await saveThemeFn({ data: { projectId, ...draft } });
+                      await refreshThemes();
+                    })
+                  }
+                  onDelete={(id) =>
+                    mutate.mutate(async () => {
+                      await deleteThemeFn({ data: { id } });
+                      await refreshThemes();
+                    })
+                  }
+                  onStatus={(id, status) =>
+                    mutate.mutate(async () => {
+                      await observationStatusFn({ data: { id, status } });
+                      await refreshThemes();
+                    })
+                  }
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                  onOpenEvidence={(sceneId, quote) => {
+                    setStoryOpen(false);
+                    void openEvidence(sceneId, quote);
+                  }}
+                />
               ) : storyTab === "promises" ? (
+
 
                 <PromisesView
                   promises={promises.data?.promises ?? []}
