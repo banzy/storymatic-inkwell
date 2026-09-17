@@ -261,13 +261,14 @@ export const readPromises = createServerFn({ method: "POST" })
     let dropped = 0;
     for (const item of result.promises.slice(0, 16)) {
       const setup = refs.get(item.setup_ref);
-      if (!setup || !isBacked(setup.text, item.setup_quote ?? "")) {
+      const setupQuote = setup ? backingQuote(setup.text, item.setup_quote ?? "") : null;
+      if (!setup || !setupQuote) {
         dropped += 1;
         continue;
       }
       const payoff = refs.get(item.payoff_ref);
-      const hasPayoff = !!payoff && isBacked(payoff.text, item.payoff_quote ?? "");
-
+      const payoffQuote = payoff ? backingQuote(payoff.text, item.payoff_quote ?? "") : null;
+      const hasPayoff = !!payoff && !!payoffQuote;
 
       const { error } = await supabase.from("story_promises").insert({
         project_id: data.projectId,
@@ -275,9 +276,9 @@ export const readPromises = createServerFn({ method: "POST" })
         promise: item.promise.trim().slice(0, 1200),
         subject: item.subject?.trim().slice(0, 200) || null,
         setup_scene_id: setup.id,
-        setup_quote: item.setup_quote.trim().slice(0, 400),
+        setup_quote: setupQuote.slice(0, 400),
         payoff_scene_id: hasPayoff ? payoff.id : null,
-        payoff_quote: hasPayoff ? item.payoff_quote.trim().slice(0, 400) : null,
+        payoff_quote: hasPayoff ? payoffQuote!.slice(0, 400) : null,
         status: hasPayoff ? "paid" : "open",
         truth_type: "inferred",
         origin: "analysis",
@@ -288,6 +289,6 @@ export const readPromises = createServerFn({ method: "POST" })
       if (hasPayoff) paid += 1;
     }
 
-    console.log('[promises] returned', result.promises.length, 'noted', noted, 'dropped', dropped, JSON.stringify(result.promises.slice(0,2)));
     return { ok: true as const, noted, paid, dropped };
   });
+
