@@ -94,6 +94,8 @@ import {
 } from "@/lib/promises.functions";
 import { WorldView } from "@/components/studio/world-view";
 import { ResearchView, type ResearchDraft } from "@/components/studio/research-view";
+import { ThemesView, type ThemeDraft } from "@/components/studio/themes-view";
+
 import { readWorld } from "@/lib/world.functions";
 import { OverviewView } from "@/components/studio/overview-view";
 import { getStoryOverview } from "@/lib/overview.functions";
@@ -125,6 +127,8 @@ import {
   getResearch,
   saveResearchNote,
 } from "@/lib/research.functions";
+import { deleteTheme, getThemes, readThemes, saveTheme } from "@/lib/themes.functions";
+
 
 
 import { docToMarkdown } from "@/lib/prose";
