@@ -92,6 +92,15 @@ import {
   readPromises,
   savePromise,
 } from "@/lib/promises.functions";
+import { WorldView } from "@/components/studio/world-view";
+import { ResearchView, type ResearchDraft } from "@/components/studio/research-view";
+import { readWorld } from "@/lib/world.functions";
+import {
+  deleteResearchNote,
+  getResearch,
+  saveResearchNote,
+} from "@/lib/research.functions";
+
 
 import { docToMarkdown } from "@/lib/prose";
 
