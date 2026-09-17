@@ -251,15 +251,13 @@ export const readPromises = createServerFn({ method: "POST" })
     let dropped = 0;
     for (const item of result.promises.slice(0, 16)) {
       const setup = refs.get(item.setup_ref);
-      const setupQuote = normalise(item.setup_quote ?? "");
-      if (!setup || setupQuote.length < 12 || !setup.text.includes(setupQuote)) {
+      if (!setup || !isBacked(setup.text, item.setup_quote ?? "")) {
         dropped += 1;
         continue;
       }
       const payoff = refs.get(item.payoff_ref);
-      const payoffQuote = normalise(item.payoff_quote ?? "");
-      const hasPayoff =
-        !!payoff && payoffQuote.length >= 12 && payoff.text.includes(payoffQuote);
+      const hasPayoff = !!payoff && isBacked(payoff.text, item.payoff_quote ?? "");
+
 
       const { error } = await supabase.from("story_promises").insert({
         project_id: data.projectId,
