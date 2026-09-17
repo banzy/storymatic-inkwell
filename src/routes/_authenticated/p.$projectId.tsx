@@ -371,6 +371,58 @@ function Workspace() {
   const refreshResearch = () =>
     queryClient.invalidateQueries({ queryKey: ["research", projectId] });
 
+  const chronology = useQuery({
+    queryKey: ["chronology", projectId],
+    queryFn: () => chronologyFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+  const refreshChronology = () =>
+    queryClient.invalidateQueries({ queryKey: ["chronology", projectId] });
+
+  const runReadChronology = async () => {
+    setExtrasBusy(true);
+    setStoryMessage("Working out when things happen…");
+    try {
+      await autosave.flush();
+      const result = await readChronologyFn({ data: { projectId } });
+      if (result.ok) {
+        await refreshChronology();
+        setStoryMessage(
+          result.noted === 0
+            ? "The draft doesn't settle its order clearly enough yet."
+            : `${result.noted} thing${result.noted === 1 ? "" : "s"} placed in story order${
+                result.unclear > 0
+                  ? `, ${result.unclear} with the timing left as the draft leaves it`
+                  : ""
+              }. These stay Storymatic's readings until you agree.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage(
+        "Storymatic couldn't read the chronology just now. Your draft is unaffected.",
+      );
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
+
+  const onSaveEvent = async (draft: EventDraft) => {
+    await saveEventFn({
+      data: {
+        projectId,
+        id: draft.id,
+        summary: draft.summary,
+        whenText: draft.whenText,
+        sceneId: draft.sceneId,
+        certainty: draft.certainty,
+      },
+    });
+    await refreshChronology();
+  };
+
+
   const runReadWorld = async () => {
     setExtrasBusy(true);
     setStoryMessage("Reading the world your scenes have built…");
