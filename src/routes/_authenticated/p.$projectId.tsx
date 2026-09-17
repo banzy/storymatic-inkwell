@@ -223,6 +223,11 @@ function Workspace() {
   const judgePromiseFn = useServerFn(judgePromise);
   const deletePromiseFn = useServerFn(deletePromise);
   const readPromisesFn = useServerFn(readPromises);
+  const readWorldFn = useServerFn(readWorld);
+  const researchFn = useServerFn(getResearch);
+  const saveResearchFn = useServerFn(saveResearchNote);
+  const deleteResearchFn = useServerFn(deleteResearchNote);
+
 
 
 
