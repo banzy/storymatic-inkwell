@@ -62,8 +62,10 @@ export const getStoryOverview = createServerFn({ method: "GET" })
           .from("observations")
           .select("id, title, body, scene_id, status")
           .eq("project_id", projectId)
+          .eq("kind", "discovery")
           .eq("status", "open")
           .order("created_at", { ascending: false }),
+
         supabase
           .from("story_claims")
           .select("id")

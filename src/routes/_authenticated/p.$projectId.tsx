@@ -94,6 +94,8 @@ import {
 } from "@/lib/promises.functions";
 import { WorldView } from "@/components/studio/world-view";
 import { ResearchView, type ResearchDraft } from "@/components/studio/research-view";
+import { ThemesView, type ThemeDraft } from "@/components/studio/themes-view";
+
 import { readWorld } from "@/lib/world.functions";
 import { OverviewView } from "@/components/studio/overview-view";
 import { getStoryOverview } from "@/lib/overview.functions";
@@ -125,6 +127,8 @@ import {
   getResearch,
   saveResearchNote,
 } from "@/lib/research.functions";
+import { deleteTheme, getThemes, readThemes, saveTheme } from "@/lib/themes.functions";
+
 
 
 import { docToMarkdown } from "@/lib/prose";
@@ -268,6 +272,12 @@ function Workspace() {
   const saveResearchFn = useServerFn(saveResearchNote);
   const deleteResearchFn = useServerFn(deleteResearchNote);
 
+  const themesFn = useServerFn(getThemes);
+  const saveThemeFn = useServerFn(saveTheme);
+  const deleteThemeFn = useServerFn(deleteTheme);
+  const readThemesFn = useServerFn(readThemes);
+
+
 
 
 
@@ -393,6 +403,38 @@ function Workspace() {
   });
   const refreshResearch = () =>
     queryClient.invalidateQueries({ queryKey: ["research", projectId] });
+
+  const themes = useQuery({
+    queryKey: ["themes", projectId],
+    queryFn: () => themesFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+  const refreshThemes = () =>
+    queryClient.invalidateQueries({ queryKey: ["themes", projectId] });
+
+  const runReadThemes = async () => {
+    setExtrasBusy(true);
+    setStoryMessage("Reading for what keeps coming back…");
+    try {
+      await autosave.flush();
+      const result = await readThemesFn({ data: { projectId } });
+      if (result.ok) {
+        await refreshThemes();
+        setStoryMessage(
+          result.added === 0
+            ? "Nothing recurs clearly enough to name yet. This grows with the draft."
+            : `${result.added} thing${result.added === 1 ? "" : "s"} the scenes keep returning to. Each one is a reading, not a verdict — agree with it or set it aside.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't read for themes just now. Your draft is unaffected.");
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
+
 
   const overview = useQuery({
     queryKey: ["story-overview", projectId],
@@ -1536,7 +1578,18 @@ function Workspace() {
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
                   {extrasBusy ? "Reading…" : "Read what's set up"}
                 </Button>
+              ) : storyTab === "themes" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runReadThemes()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Reading…" : "Read for themes"}
+                </Button>
               ) : storyTab === "discoveries" ? (
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -1719,7 +1772,43 @@ function Workspace() {
                     })
                   }
                 />
+              ) : storyTab === "themes" ? (
+                <ThemesView
+                  themes={themes.data?.themes ?? []}
+                  scenes={(outline.data?.scenes ?? []).map((scene) => ({
+                    id: scene.id,
+                    title: scene.title,
+                  }))}
+                  sceneTitles={new Map(Object.entries(sceneTitles))}
+                  onSave={(draft: ThemeDraft) =>
+                    mutate.mutate(async () => {
+                      await saveThemeFn({ data: { projectId, ...draft } });
+                      await refreshThemes();
+                    })
+                  }
+                  onDelete={(id) =>
+                    mutate.mutate(async () => {
+                      await deleteThemeFn({ data: { id } });
+                      await refreshThemes();
+                    })
+                  }
+                  onStatus={(id, status) =>
+                    mutate.mutate(async () => {
+                      await observationStatusFn({ data: { id, status } });
+                      await refreshThemes();
+                    })
+                  }
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                  onOpenEvidence={(sceneId, quote) => {
+                    setStoryOpen(false);
+                    void openEvidence(sceneId, quote);
+                  }}
+                />
               ) : storyTab === "promises" ? (
+
 
                 <PromisesView
                   promises={promises.data?.promises ?? []}
