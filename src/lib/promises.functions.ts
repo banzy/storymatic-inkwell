@@ -256,19 +256,38 @@ export const readPromises = createServerFn({ method: "POST" })
       .eq("author_confirmed", false);
     if (clearError) throw new Error(clearError.message);
 
+    /**
+     * Locates a quote in the draft. The scene the model named is tried first,
+     * leniently (it sometimes writes `S2 "Title"` or just the title), then every
+     * other scene — the passage decides which scene it belongs to, not the label.
+     */
+    const locate = (ref: string | null | undefined, quote: string | null | undefined) => {
+      const raw = (ref ?? "").trim();
+      const key = raw.match(/S\d+/i)?.[0]?.toUpperCase() ?? "";
+      const named =
+        refs.get(key) ??
+        [...refs.entries()].find(([, value]) => value.title && raw.includes(value.title))?.[1] ??
+        null;
+      const order = named ? [named, ...refs.values()] : [...refs.values()];
+      for (const scene of order) {
+        const found = backingQuote(scene.text, quote ?? "");
+        if (found) return { id: scene.id, quote: found };
+      }
+      return null;
+    };
+
     let noted = 0;
     let paid = 0;
     let dropped = 0;
     for (const item of result.promises.slice(0, 16)) {
-      const setup = refs.get(item.setup_ref);
-      const setupQuote = setup ? backingQuote(setup.text, item.setup_quote ?? "") : null;
-      if (!setup || !setupQuote) {
+      const setup = locate(item.setup_ref, item.setup_quote);
+      if (!setup) {
         dropped += 1;
         continue;
       }
-      const payoff = refs.get(item.payoff_ref);
-      const payoffQuote = payoff ? backingQuote(payoff.text, item.payoff_quote ?? "") : null;
-      const hasPayoff = !!payoff && !!payoffQuote;
+      const payoff = locate(item.payoff_ref, item.payoff_quote);
+      const hasPayoff = !!payoff;
+
 
       const { error } = await supabase.from("story_promises").insert({
         project_id: data.projectId,
