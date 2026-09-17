@@ -95,6 +95,16 @@ import {
 import { WorldView } from "@/components/studio/world-view";
 import { ResearchView, type ResearchDraft } from "@/components/studio/research-view";
 import { readWorld } from "@/lib/world.functions";
+import { ChronologyView, type EventDraft } from "@/components/studio/chronology-view";
+import {
+  deleteStoryEvent,
+  getChronology,
+  judgeStoryEvent,
+  moveStoryEvent,
+  readChronology,
+  saveStoryEvent,
+} from "@/lib/timeline.functions";
+
 import {
   deleteResearchNote,
   getResearch,
@@ -224,6 +234,13 @@ function Workspace() {
   const deletePromiseFn = useServerFn(deletePromise);
   const readPromisesFn = useServerFn(readPromises);
   const readWorldFn = useServerFn(readWorld);
+  const chronologyFn = useServerFn(getChronology);
+  const saveEventFn = useServerFn(saveStoryEvent);
+  const judgeEventFn = useServerFn(judgeStoryEvent);
+  const deleteEventFn = useServerFn(deleteStoryEvent);
+  const moveEventFn = useServerFn(moveStoryEvent);
+  const readChronologyFn = useServerFn(readChronology);
+
   const researchFn = useServerFn(getResearch);
   const saveResearchFn = useServerFn(saveResearchNote);
   const deleteResearchFn = useServerFn(deleteResearchNote);
@@ -353,6 +370,58 @@ function Workspace() {
   });
   const refreshResearch = () =>
     queryClient.invalidateQueries({ queryKey: ["research", projectId] });
+
+  const chronology = useQuery({
+    queryKey: ["chronology", projectId],
+    queryFn: () => chronologyFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+  const refreshChronology = () =>
+    queryClient.invalidateQueries({ queryKey: ["chronology", projectId] });
+
+  const runReadChronology = async () => {
+    setExtrasBusy(true);
+    setStoryMessage("Working out when things happen…");
+    try {
+      await autosave.flush();
+      const result = await readChronologyFn({ data: { projectId } });
+      if (result.ok) {
+        await refreshChronology();
+        setStoryMessage(
+          result.noted === 0
+            ? "The draft doesn't settle its order clearly enough yet."
+            : `${result.noted} thing${result.noted === 1 ? "" : "s"} placed in story order${
+                result.unclear > 0
+                  ? `, ${result.unclear} with the timing left as the draft leaves it`
+                  : ""
+              }. These stay Storymatic's readings until you agree.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage(
+        "Storymatic couldn't read the chronology just now. Your draft is unaffected.",
+      );
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
+
+  const onSaveEvent = async (draft: EventDraft) => {
+    await saveEventFn({
+      data: {
+        projectId,
+        id: draft.id,
+        summary: draft.summary,
+        whenText: draft.whenText,
+        sceneId: draft.sceneId,
+        certainty: draft.certainty,
+      },
+    });
+    await refreshChronology();
+  };
+
 
   const runReadWorld = async () => {
     setExtrasBusy(true);
@@ -1385,10 +1454,55 @@ function Workspace() {
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
                   {extrasBusy ? "Looking…" : "Look across the scenes"}
                 </Button>
+              ) : storyTab === "timeline" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runReadChronology()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Reading…" : "Read the chronology"}
+                </Button>
               ) : null
             }
             extraSlot={
-              storyTab === "people" ? (
+              storyTab === "timeline" ? (
+                <ChronologyView
+                  events={chronology.data?.events ?? []}
+                  scenes={outline.data?.scenes ?? []}
+                  sceneTitles={new Map(Object.entries(sceneTitles))}
+                  loading={chronology.isLoading}
+                  onSave={(draft) => mutate.mutate(async () => onSaveEvent(draft))}
+                  onMove={(id, direction) =>
+                    mutate.mutate(async () => {
+                      await moveEventFn({ data: { projectId, id, direction } });
+                      await refreshChronology();
+                    })
+                  }
+                  onJudge={(id, confirmed) =>
+                    mutate.mutate(async () => {
+                      await judgeEventFn({ data: { id, confirmed } });
+                      await refreshChronology();
+                    })
+                  }
+                  onDelete={(id) =>
+                    mutate.mutate(async () => {
+                      await deleteEventFn({ data: { id } });
+                      await refreshChronology();
+                    })
+                  }
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                  onOpenEvidence={(sceneId, quote) => {
+                    setStoryOpen(false);
+                    void openEvidence(sceneId, quote);
+                  }}
+                />
+              ) : storyTab === "people" ? (
+
                 <PeopleView
                   entities={storyModel.data?.entities ?? []}
                   claims={storyModel.data?.claims ?? []}

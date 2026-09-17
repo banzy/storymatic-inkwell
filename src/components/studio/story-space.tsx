@@ -398,6 +398,8 @@ export function StorySpace(props: {
           tab === "promises" ||
           tab === "world" ||
           tab === "research" ||
+          tab === "timeline" ||
+
 
           tab === "relationships" ||
           tab === "discoveries" ? (

@@ -63,7 +63,10 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
       author-noted or read from the draft, each with the manuscript passage behind it;
       readings stay unconfirmed until the author agrees. Verified in browser.
 - [ ] Plot threads, deeper: subplots, mysteries, reveals as first-class, planned vs written.
-- [ ] Timeline, deeper: extracted dates, events ordered independently of scene order.
+- [x] Timeline, deeper: story chronology in its own order (story_events), timings kept in the
+      draft's own words, certainty preserved, author reorder / confirm / decline, own entries.
+      Verified in browser.
+
 - [x] World / story bible: places, recurring objects, groups and the rules the draft
       establishes, each with the passage behind it; author wording never overwritten.
       Verified in browser on the sample.
