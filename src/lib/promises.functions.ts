@@ -278,5 +278,6 @@ export const readPromises = createServerFn({ method: "POST" })
       if (hasPayoff) paid += 1;
     }
 
+    console.log('[promises] returned', result.promises.length, 'noted', noted, 'dropped', dropped, JSON.stringify(result.promises.slice(0,2)));
     return { ok: true as const, noted, paid, dropped };
   });
