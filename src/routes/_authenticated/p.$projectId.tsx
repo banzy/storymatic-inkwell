@@ -1415,7 +1415,50 @@ function Workspace() {
                     })
                   }
                 />
+              ) : storyTab === "world" ? (
+                <WorldView
+                  entities={(storyModel.data?.entities ?? []).filter((entity) =>
+                    ["location", "object", "faction"].includes(entity.kind),
+                  )}
+                  claims={storyModel.data?.claims ?? []}
+                  sceneTitles={new Map(Object.entries(sceneTitles))}
+                  loading={storyModel.isLoading}
+                  onSaveEntity={(id, fields) =>
+                    mutate.mutate(async () => {
+                      await saveEntityFn({ data: { id, ...fields } });
+                      await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+                    })
+                  }
+                  onClaimAction={(id, action) =>
+                    mutate.mutate(async () => {
+                      await claimJudgementFn({ data: { id, action } });
+                      await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+                    })
+                  }
+                  onOpenEvidence={(sceneId, quote) => {
+                    setStoryOpen(false);
+                    void openEvidence(sceneId, quote);
+                  }}
+                />
+              ) : storyTab === "research" ? (
+                <ResearchView
+                  notes={research.data?.notes ?? []}
+                  loading={research.isLoading}
+                  onSave={(draft: ResearchDraft) =>
+                    mutate.mutate(async () => {
+                      await saveResearchFn({ data: { projectId, ...draft } });
+                      await refreshResearch();
+                    })
+                  }
+                  onDelete={(id) =>
+                    mutate.mutate(async () => {
+                      await deleteResearchFn({ data: { id } });
+                      await refreshResearch();
+                    })
+                  }
+                />
               ) : storyTab === "promises" ? (
+
                 <PromisesView
                   promises={promises.data?.promises ?? []}
                   scenes={(outline.data?.scenes ?? []).map((scene) => ({
