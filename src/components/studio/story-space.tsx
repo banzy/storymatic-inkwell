@@ -15,6 +15,8 @@ export type StorySpaceTab =
   | "promises"
   | "timeline"
   | "relationships"
+  | "world"
+  | "research"
   | "discoveries";
 
 const TAB_LABELS: Record<StorySpaceTab, string> = {
@@ -25,6 +27,8 @@ const TAB_LABELS: Record<StorySpaceTab, string> = {
   promises: "Promises",
   timeline: "Timeline",
   relationships: "Relationships",
+  world: "World",
+  research: "Research",
   discoveries: "Discoveries",
 };
 
@@ -36,8 +40,11 @@ const TAB_BLURBS: Record<StorySpaceTab, string> = {
   promises: "What the story sets up, where it pays off, and what's still owed.",
   timeline: "When things happen in the story, not the order you read them in.",
   relationships: "Where each relationship stands by this point in the draft.",
+  world: "The places, things, groups and rules your draft has established.",
+  research: "Your own notes and sources, kept outside the story.",
   discoveries: "Quiet notes on what the scenes together seem to say.",
 };
+
 
 
 
