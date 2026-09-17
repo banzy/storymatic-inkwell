@@ -12,6 +12,7 @@ export type StorySpaceTab =
   | "scenes"
   | "people"
   | "plot"
+  | "promises"
   | "timeline"
   | "relationships"
   | "discoveries";
@@ -21,6 +22,7 @@ const TAB_LABELS: Record<StorySpaceTab, string> = {
   scenes: "Scenes",
   people: "People",
   plot: "Plot",
+  promises: "Promises",
   timeline: "Timeline",
   relationships: "Relationships",
   discoveries: "Discoveries",
@@ -31,10 +33,12 @@ const TAB_BLURBS: Record<StorySpaceTab, string> = {
   scenes: "One card for each scene, filled in from what you've written.",
   people: "Who someone is, where they stand, and what they know at a point in the story.",
   plot: "The threads running through the draft, and where each one is picked up.",
+  promises: "What the story sets up, where it pays off, and what's still owed.",
   timeline: "When things happen in the story, not the order you read them in.",
   relationships: "Where each relationship stands by this point in the draft.",
   discoveries: "Quiet notes on what the scenes together seem to say.",
 };
+
 
 
 const TRUTH_LABEL: Record<string, string> = {
@@ -384,8 +388,10 @@ export function StorySpace(props: {
           <p className="text-sm text-muted-foreground">Gathering your story…</p>
         ) : tab === "synopsis" ||
           tab === "people" ||
+          tab === "promises" ||
           tab === "relationships" ||
           tab === "discoveries" ? (
+
 
           extraSlot
         ) : tab === "scenes" ? (

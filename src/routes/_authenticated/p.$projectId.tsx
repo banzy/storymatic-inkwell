@@ -84,6 +84,15 @@ import {
   saveSynopsis,
   writeSynopsis,
 } from "@/lib/storybrain.functions";
+import { PromisesView, type PromiseDraft } from "@/components/studio/promises-view";
+import {
+  deletePromise,
+  getPromises,
+  judgePromise,
+  readPromises,
+  savePromise,
+} from "@/lib/promises.functions";
+
 import { docToMarkdown } from "@/lib/prose";
 
 import {
@@ -200,6 +209,11 @@ function Workspace() {
   const judgeRelationshipFn = useServerFn(judgeRelationship);
   const judgeBeatFn = useServerFn(judgeRelationshipBeat);
   const findDiscoveriesFn = useServerFn(findDiscoveries);
+  const promisesFn = useServerFn(getPromises);
+  const savePromiseFn = useServerFn(savePromise);
+  const judgePromiseFn = useServerFn(judgePromise);
+  const deletePromiseFn = useServerFn(deletePromise);
+  const readPromisesFn = useServerFn(readPromises);
 
 
 
@@ -286,6 +300,38 @@ function Workspace() {
   });
   const refreshExtras = () =>
     queryClient.invalidateQueries({ queryKey: ["story-extras", projectId] });
+
+  const promises = useQuery({
+    queryKey: ["story-promises", projectId],
+    queryFn: () => promisesFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+  const refreshPromises = () =>
+    queryClient.invalidateQueries({ queryKey: ["story-promises", projectId] });
+
+  const runReadPromises = async () => {
+    setExtrasBusy(true);
+    setStoryMessage("Reading what the draft sets up…");
+    try {
+      await autosave.flush();
+      const result = await readPromisesFn({ data: { projectId } });
+      if (result.ok) {
+        await refreshPromises();
+        setStoryMessage(
+          result.noted === 0
+            ? "Nothing is planted clearly enough to list yet."
+            : `${result.noted} promise${result.noted === 1 ? "" : "s"}, ${result.paid} already paid off. These are Storymatic's readings until you confirm them.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't read the promises just now. Your draft is unaffected.");
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
+
 
   const synopsisTargets: SynopsisTarget[] = useMemo(() => {
     const chapters = outline.data?.chapters ?? [];
@@ -1258,6 +1304,16 @@ function Workspace() {
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
                   {extrasBusy ? "Reading…" : "Read the relationships"}
                 </Button>
+              ) : storyTab === "promises" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runReadPromises()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Reading…" : "Read what's set up"}
+                </Button>
               ) : storyTab === "discoveries" ? (
                 <Button
                   variant="outline"
@@ -1297,6 +1353,42 @@ function Workspace() {
                       await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
                     })
                   }
+                />
+              ) : storyTab === "promises" ? (
+                <PromisesView
+                  promises={promises.data?.promises ?? []}
+                  scenes={(outline.data?.scenes ?? []).map((scene) => ({
+                    id: scene.id,
+                    title: scene.title,
+                  }))}
+                  sceneTitles={new Map(Object.entries(sceneTitles))}
+                  loading={promises.isLoading}
+                  onSave={(draft: PromiseDraft) =>
+                    mutate.mutate(async () => {
+                      await savePromiseFn({ data: { projectId, ...draft } });
+                      await refreshPromises();
+                    })
+                  }
+                  onJudge={(id, confirmed) =>
+                    mutate.mutate(async () => {
+                      await judgePromiseFn({ data: { id, confirmed } });
+                      await refreshPromises();
+                    })
+                  }
+                  onDelete={(id) =>
+                    mutate.mutate(async () => {
+                      await deletePromiseFn({ data: { id } });
+                      await refreshPromises();
+                    })
+                  }
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                  onOpenEvidence={(sceneId, quote) => {
+                    setStoryOpen(false);
+                    void openEvidence(sceneId, quote);
+                  }}
                 />
               ) : extras.isLoading ? (
                 <p className="text-sm text-muted-foreground">Gathering your story…</p>
