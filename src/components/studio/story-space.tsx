@@ -8,6 +8,7 @@ import type { OutlineScene } from "@/lib/outline.functions";
 import type { StoryClaim, StoryEntity } from "@/lib/story.functions";
 
 export type StorySpaceTab =
+  | "overview"
   | "synopsis"
   | "scenes"
   | "people"
@@ -20,6 +21,7 @@ export type StorySpaceTab =
   | "discoveries";
 
 const TAB_LABELS: Record<StorySpaceTab, string> = {
+  overview: "Overview",
   synopsis: "Synopsis",
   scenes: "Scenes",
   people: "People",
@@ -33,6 +35,7 @@ const TAB_LABELS: Record<StorySpaceTab, string> = {
 };
 
 const TAB_BLURBS: Record<StorySpaceTab, string> = {
+  overview: "Where the book stands, in a page.",
   synopsis: "A summary that keeps up with the draft, at whatever level you need.",
   scenes: "One card for each scene, filled in from what you've written.",
   people: "Who someone is, where they stand, and what they know at a point in the story.",
@@ -44,6 +47,7 @@ const TAB_BLURBS: Record<StorySpaceTab, string> = {
   research: "Your own notes and sources, kept outside the story.",
   discoveries: "Quiet notes on what the scenes together seem to say.",
 };
+
 
 
 
@@ -398,6 +402,8 @@ export function StorySpace(props: {
           tab === "promises" ||
           tab === "world" ||
           tab === "research" ||
+          tab === "overview" ||
+
           tab === "timeline" ||
 
 

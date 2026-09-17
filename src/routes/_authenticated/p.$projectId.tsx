@@ -95,6 +95,9 @@ import {
 import { WorldView } from "@/components/studio/world-view";
 import { ResearchView, type ResearchDraft } from "@/components/studio/research-view";
 import { readWorld } from "@/lib/world.functions";
+import { OverviewView } from "@/components/studio/overview-view";
+import { getStoryOverview } from "@/lib/overview.functions";
+
 import { ChronologyView, type EventDraft } from "@/components/studio/chronology-view";
 import {
   deleteStoryEvent,
@@ -235,6 +238,8 @@ function Workspace() {
   const readPromisesFn = useServerFn(readPromises);
   const readWorldFn = useServerFn(readWorld);
   const chronologyFn = useServerFn(getChronology);
+  const overviewFn = useServerFn(getStoryOverview);
+
   const saveEventFn = useServerFn(saveStoryEvent);
   const judgeEventFn = useServerFn(judgeStoryEvent);
   const deleteEventFn = useServerFn(deleteStoryEvent);
@@ -289,7 +294,7 @@ function Workspace() {
   const [outlineMessage, setOutlineMessage] = useState<string | null>(null);
   const [unplanned, setUnplanned] = useState<{ sceneId: string; note: string }[]>([]);
   const [storyOpen, setStoryOpen] = useState(false);
-  const [storyTab, setStoryTab] = useState<StorySpaceTab>("scenes");
+  const [storyTab, setStoryTab] = useState<StorySpaceTab>("overview");
   const [fillingCards, setFillingCards] = useState(false);
   const [storyMessage, setStoryMessage] = useState<string | null>(null);
   const [synopsisBusy, setSynopsisBusy] = useState<string | null>(null);
@@ -371,7 +376,14 @@ function Workspace() {
   const refreshResearch = () =>
     queryClient.invalidateQueries({ queryKey: ["research", projectId] });
 
+  const overview = useQuery({
+    queryKey: ["story-overview", projectId],
+    queryFn: () => overviewFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+
   const chronology = useQuery({
+
     queryKey: ["chronology", projectId],
     queryFn: () => chronologyFn({ data: { projectId } }),
     enabled: storyOpen,
@@ -1467,7 +1479,25 @@ function Workspace() {
               ) : null
             }
             extraSlot={
-              storyTab === "timeline" ? (
+              storyTab === "overview" ? (
+                <OverviewView
+                  overview={overview.data}
+                  loading={overview.isLoading}
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                  onGoToTab={(tab) => {
+                    setStoryMessage(null);
+                    setStoryTab(tab);
+                  }}
+                  onOpenOutline={() => {
+                    setStoryOpen(false);
+                    setOutlineOpen(true);
+                  }}
+                />
+              ) : storyTab === "timeline" ? (
+
                 <ChronologyView
                   events={chronology.data?.events ?? []}
                   scenes={outline.data?.scenes ?? []}
