@@ -1860,7 +1860,17 @@ function Workspace() {
         <ContextPanel
           view={panelView}
           onClose={() => setPanelView(null)}
-          onSelectView={setPanelView}
+          onSelectView={(view) => {
+            if (view === "possibilities") {
+              setPanelView(null);
+              setStoryMessage(null);
+              setStoryTab("possibilities");
+              setStoryOpen(true);
+              return;
+            }
+            setPanelView(view);
+          }}
+
           scene={
             scene.data
               ? {
