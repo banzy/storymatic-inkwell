@@ -25,8 +25,23 @@ const normalise = (text: string) =>
   text
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
     .replace(/\s+/g, " ")
     .trim();
+
+/**
+ * A quote counts as backed when it appears in the scene verbatim, or when a
+ * substantial opening run of it does — long quotes are often clipped at the end.
+ * Nothing looser than that: an unbacked reading is dropped, never kept.
+ */
+const isBacked = (sceneText: string, quote: string) => {
+  const clean = normalise(quote);
+  if (clean.length < 12) return false;
+  if (sceneText.includes(clean)) return true;
+  const opening = clean.slice(0, 48).trim();
+  return opening.length >= 24 && sceneText.includes(opening);
+};
+
 
 /** Everything the Promises view reads. RLS scopes it to the owner. */
 export const getPromises = createServerFn({ method: "GET" })
