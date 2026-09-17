@@ -289,7 +289,7 @@ function Workspace() {
   const [outlineMessage, setOutlineMessage] = useState<string | null>(null);
   const [unplanned, setUnplanned] = useState<{ sceneId: string; note: string }[]>([]);
   const [storyOpen, setStoryOpen] = useState(false);
-  const [storyTab, setStoryTab] = useState<StorySpaceTab>("scenes");
+  const [storyTab, setStoryTab] = useState<StorySpaceTab>("overview");
   const [fillingCards, setFillingCards] = useState(false);
   const [storyMessage, setStoryMessage] = useState<string | null>(null);
   const [synopsisBusy, setSynopsisBusy] = useState<string | null>(null);
