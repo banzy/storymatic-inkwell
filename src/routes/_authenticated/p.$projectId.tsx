@@ -404,6 +404,38 @@ function Workspace() {
   const refreshResearch = () =>
     queryClient.invalidateQueries({ queryKey: ["research", projectId] });
 
+  const themes = useQuery({
+    queryKey: ["themes", projectId],
+    queryFn: () => themesFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+  const refreshThemes = () =>
+    queryClient.invalidateQueries({ queryKey: ["themes", projectId] });
+
+  const runReadThemes = async () => {
+    setExtrasBusy(true);
+    setStoryMessage("Reading for what keeps coming back…");
+    try {
+      await autosave.flush();
+      const result = await readThemesFn({ data: { projectId } });
+      if (result.ok) {
+        await refreshThemes();
+        setStoryMessage(
+          result.added === 0
+            ? "Nothing recurs clearly enough to name yet. This grows with the draft."
+            : `${result.added} thing${result.added === 1 ? "" : "s"} the scenes keep returning to. Each one is a reading, not a verdict — agree with it or set it aside.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't read for themes just now. Your draft is unaffected.");
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
+
+
   const overview = useQuery({
     queryKey: ["story-overview", projectId],
     queryFn: () => overviewFn({ data: { projectId } }),
