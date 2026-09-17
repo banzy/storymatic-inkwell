@@ -272,6 +272,12 @@ function Workspace() {
   const saveResearchFn = useServerFn(saveResearchNote);
   const deleteResearchFn = useServerFn(deleteResearchNote);
 
+  const themesFn = useServerFn(getThemes);
+  const saveThemeFn = useServerFn(saveTheme);
+  const deleteThemeFn = useServerFn(deleteTheme);
+  const readThemesFn = useServerFn(readThemes);
+
+
 
 
 
