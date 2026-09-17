@@ -1454,10 +1454,55 @@ function Workspace() {
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
                   {extrasBusy ? "Looking…" : "Look across the scenes"}
                 </Button>
+              ) : storyTab === "timeline" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runReadChronology()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Reading…" : "Read the chronology"}
+                </Button>
               ) : null
             }
             extraSlot={
-              storyTab === "people" ? (
+              storyTab === "timeline" ? (
+                <ChronologyView
+                  events={chronology.data?.events ?? []}
+                  scenes={outline.data?.scenes ?? []}
+                  sceneTitles={new Map(Object.entries(sceneTitles))}
+                  loading={chronology.isLoading}
+                  onSave={(draft) => mutate.mutate(async () => onSaveEvent(draft))}
+                  onMove={(id, direction) =>
+                    mutate.mutate(async () => {
+                      await moveEventFn({ data: { projectId, id, direction } });
+                      await refreshChronology();
+                    })
+                  }
+                  onJudge={(id, confirmed) =>
+                    mutate.mutate(async () => {
+                      await judgeEventFn({ data: { id, confirmed } });
+                      await refreshChronology();
+                    })
+                  }
+                  onDelete={(id) =>
+                    mutate.mutate(async () => {
+                      await deleteEventFn({ data: { id } });
+                      await refreshChronology();
+                    })
+                  }
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                  onOpenEvidence={(sceneId, quote) => {
+                    setStoryOpen(false);
+                    void openEvidence(sceneId, quote);
+                  }}
+                />
+              ) : storyTab === "people" ? (
+
                 <PeopleView
                   entities={storyModel.data?.entities ?? []}
                   claims={storyModel.data?.claims ?? []}
