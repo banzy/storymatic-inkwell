@@ -737,6 +737,66 @@ export type Database = {
           },
         ]
       }
+      story_possibilities: {
+        Row: {
+          changes: Json
+          consequences: Json
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          origin: string
+          premise: string
+          project_id: string
+          scene_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          changes?: Json
+          consequences?: Json
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          origin?: string
+          premise?: string
+          project_id: string
+          scene_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          changes?: Json
+          consequences?: Json
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          origin?: string
+          premise?: string
+          project_id?: string
+          scene_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_possibilities_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_possibilities_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       story_promises: {
         Row: {
           author_confirmed: boolean

@@ -97,6 +97,18 @@ import { ResearchView, type ResearchDraft } from "@/components/studio/research-v
 import { readWorld } from "@/lib/world.functions";
 import { OverviewView } from "@/components/studio/overview-view";
 import { getStoryOverview } from "@/lib/overview.functions";
+import {
+  PossibilitiesView,
+  type PossibilityDraft,
+} from "@/components/studio/possibilities-view";
+import {
+  deletePossibility,
+  exploreScene,
+  getPossibilities,
+  savePossibility,
+  setPossibilityStatus,
+} from "@/lib/possibilities.functions";
+
 
 import { ChronologyView, type EventDraft } from "@/components/studio/chronology-view";
 import {
@@ -239,6 +251,12 @@ function Workspace() {
   const readWorldFn = useServerFn(readWorld);
   const chronologyFn = useServerFn(getChronology);
   const overviewFn = useServerFn(getStoryOverview);
+  const possibilitiesFn = useServerFn(getPossibilities);
+  const savePossibilityFn = useServerFn(savePossibility);
+  const possibilityStatusFn = useServerFn(setPossibilityStatus);
+  const deletePossibilityFn = useServerFn(deletePossibility);
+  const exploreSceneFn = useServerFn(exploreScene);
+
 
   const saveEventFn = useServerFn(saveStoryEvent);
   const judgeEventFn = useServerFn(judgeStoryEvent);
@@ -381,6 +399,58 @@ function Workspace() {
     queryFn: () => overviewFn({ data: { projectId } }),
     enabled: storyOpen,
   });
+
+  const possibilities = useQuery({
+    queryKey: ["possibilities", projectId],
+    queryFn: () => possibilitiesFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+  const refreshPossibilities = () =>
+    queryClient.invalidateQueries({ queryKey: ["possibilities", projectId] });
+
+  const runExploreScene = async () => {
+    if (!activeSceneId) {
+      setStoryMessage("Open a scene first, and Storymatic will explore that one.");
+      return;
+    }
+    setExtrasBusy(true);
+    setStoryMessage("Thinking about ways this scene could go…");
+    try {
+      await autosave.flush();
+      const result = await exploreSceneFn({
+        data: { projectId, sceneId: activeSceneId, question: null },
+      });
+      if (result.ok) {
+        await refreshPossibilities();
+        setStoryMessage(
+          result.added === 0
+            ? "Nothing worth putting forward for this scene."
+            : `${result.added} way${result.added === 1 ? "" : "s"} “${result.sceneTitle}” could go. None of it is written anywhere — it's yours to take up or set aside.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't explore this scene just now. Your draft is unaffected.");
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
+
+  const onSavePossibility = async (draft: PossibilityDraft) => {
+    await savePossibilityFn({
+      data: {
+        projectId,
+        id: draft.id,
+        sceneId: draft.sceneId,
+        name: draft.name,
+        premise: draft.premise,
+        notes: draft.notes,
+      },
+    });
+    await refreshPossibilities();
+  };
+
 
   const chronology = useQuery({
 
@@ -1022,7 +1092,17 @@ function Workspace() {
           activeSceneId={activeSceneId}
           observationCount={openObservations.length}
           actions={actions}
-          onOpenPanel={(view) => setPanelView(view)}
+          onOpenPanel={(view) => {
+            if (view === "possibilities") {
+              setPanelView(null);
+              setStoryMessage(null);
+              setStoryTab("possibilities");
+              setStoryOpen(true);
+              return;
+            }
+            setPanelView(view);
+          }}
+
           onCollapse={() => setSidebarOpen(false)}
         />
       )}
@@ -1476,10 +1556,48 @@ function Workspace() {
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
                   {extrasBusy ? "Reading…" : "Read the chronology"}
                 </Button>
+              ) : storyTab === "possibilities" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runExploreScene()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Thinking…" : "Explore this scene"}
+                </Button>
               ) : null
             }
             extraSlot={
-              storyTab === "overview" ? (
+              storyTab === "possibilities" ? (
+                <PossibilitiesView
+                  possibilities={possibilities.data?.possibilities ?? []}
+                  scenes={(outline.data?.scenes ?? []).map((scene) => ({
+                    id: scene.id,
+                    title: scene.title,
+                  }))}
+                  sceneTitles={new Map(Object.entries(sceneTitles))}
+                  loading={possibilities.isLoading}
+                  onSave={(draft) => mutate.mutate(async () => onSavePossibility(draft))}
+                  onStatus={(id, status) =>
+                    mutate.mutate(async () => {
+                      await possibilityStatusFn({ data: { id, status } });
+                      await refreshPossibilities();
+                    })
+                  }
+                  onDelete={(id) =>
+                    mutate.mutate(async () => {
+                      await deletePossibilityFn({ data: { id } });
+                      await refreshPossibilities();
+                    })
+                  }
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                />
+              ) : storyTab === "overview" ? (
+
                 <OverviewView
                   overview={overview.data}
                   loading={overview.isLoading}
@@ -1742,7 +1860,17 @@ function Workspace() {
         <ContextPanel
           view={panelView}
           onClose={() => setPanelView(null)}
-          onSelectView={setPanelView}
+          onSelectView={(view) => {
+            if (view === "possibilities") {
+              setPanelView(null);
+              setStoryMessage(null);
+              setStoryTab("possibilities");
+              setStoryOpen(true);
+              return;
+            }
+            setPanelView(view);
+          }}
+
           scene={
             scene.data
               ? {

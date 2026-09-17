@@ -76,7 +76,10 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
 - [x] Story dashboard: calm editorial Overview tab — where the draft stands, what was touched
       last, what's still owed, a few things worth a look, loose ends. Verified in browser.
 
-- [ ] Increment 4 — Possibilities (bounded exploration, selective adoption).
+- [x] Increment 4 — Possibilities: bounded per-scene explorations (story_possibilities) with
+      premise, concrete changes, consequences (clear/possible), author-noted or explored, and
+      exploring / taking up / set aside. Nothing is written to the draft. Verified in browser.
+
 - [ ] Writer types: no setup wizard; new project can start with nothing.
 
 ## Blocked / waiting

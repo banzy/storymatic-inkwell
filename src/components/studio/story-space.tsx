@@ -18,7 +18,8 @@ export type StorySpaceTab =
   | "relationships"
   | "world"
   | "research"
-  | "discoveries";
+  | "discoveries"
+  | "possibilities";
 
 const TAB_LABELS: Record<StorySpaceTab, string> = {
   overview: "Overview",
@@ -32,6 +33,7 @@ const TAB_LABELS: Record<StorySpaceTab, string> = {
   world: "World",
   research: "Research",
   discoveries: "Discoveries",
+  possibilities: "Possibilities",
 };
 
 const TAB_BLURBS: Record<StorySpaceTab, string> = {
@@ -46,6 +48,7 @@ const TAB_BLURBS: Record<StorySpaceTab, string> = {
   world: "The places, things, groups and rules your draft has established.",
   research: "Your own notes and sources, kept outside the story.",
   discoveries: "Quiet notes on what the scenes together seem to say.",
+  possibilities: "Ways a scene could go, held beside the draft.",
 };
 
 
@@ -403,6 +406,7 @@ export function StorySpace(props: {
           tab === "world" ||
           tab === "research" ||
           tab === "overview" ||
+          tab === "possibilities" ||
 
           tab === "timeline" ||
 
