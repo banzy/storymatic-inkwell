@@ -59,7 +59,10 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
 - [x] Discoveries: quiet cross-scene notes with passages, why it might matter and
       uncertainty; intentional / set aside / bring back. Verified in browser.
       Background observer runs now happen quietly after writing settles.
-- [ ] Plot threads, deeper: setups/payoffs/promises/unresolved as first-class, planned vs written.
+- [x] Promises & payoffs: what the draft sets up, where it pays off, what's still owed;
+      author-noted or read from the draft, each with the manuscript passage behind it;
+      readings stay unconfirmed until the author agrees. Verified in browser.
+- [ ] Plot threads, deeper: subplots, mysteries, reveals as first-class, planned vs written.
 - [ ] Timeline, deeper: extracted dates, events ordered independently of scene order.
 - [ ] World / story bible: locations, factions, rules, recurring objects.
 - [ ] Themes & motifs as observations only.

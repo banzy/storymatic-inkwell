@@ -630,6 +630,92 @@ export type Database = {
           },
         ]
       }
+      story_promises: {
+        Row: {
+          author_confirmed: boolean
+          created_at: string
+          entity_id: string | null
+          id: string
+          origin: string
+          payoff_quote: string | null
+          payoff_scene_id: string | null
+          project_id: string
+          promise: string
+          setup_quote: string | null
+          setup_scene_id: string | null
+          status: string
+          subject: string | null
+          title: string
+          truth_type: string
+          updated_at: string
+        }
+        Insert: {
+          author_confirmed?: boolean
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          origin?: string
+          payoff_quote?: string | null
+          payoff_scene_id?: string | null
+          project_id: string
+          promise?: string
+          setup_quote?: string | null
+          setup_scene_id?: string | null
+          status?: string
+          subject?: string | null
+          title: string
+          truth_type?: string
+          updated_at?: string
+        }
+        Update: {
+          author_confirmed?: boolean
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          origin?: string
+          payoff_quote?: string | null
+          payoff_scene_id?: string | null
+          project_id?: string
+          promise?: string
+          setup_quote?: string | null
+          setup_scene_id?: string | null
+          status?: string
+          subject?: string | null
+          title?: string
+          truth_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_promises_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "story_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_promises_payoff_scene_id_fkey"
+            columns: ["payoff_scene_id"]
+            isOneToOne: false
+            referencedRelation: "scenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_promises_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_promises_setup_scene_id_fkey"
+            columns: ["setup_scene_id"]
+            isOneToOne: false
+            referencedRelation: "scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       story_relationships: {
         Row: {
           author_confirmed: boolean
