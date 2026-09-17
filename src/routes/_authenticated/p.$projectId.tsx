@@ -251,6 +251,12 @@ function Workspace() {
   const readWorldFn = useServerFn(readWorld);
   const chronologyFn = useServerFn(getChronology);
   const overviewFn = useServerFn(getStoryOverview);
+  const possibilitiesFn = useServerFn(getPossibilities);
+  const savePossibilityFn = useServerFn(savePossibility);
+  const possibilityStatusFn = useServerFn(setPossibilityStatus);
+  const deletePossibilityFn = useServerFn(deletePossibility);
+  const exploreSceneFn = useServerFn(exploreScene);
+
 
   const saveEventFn = useServerFn(saveStoryEvent);
   const judgeEventFn = useServerFn(judgeStoryEvent);
