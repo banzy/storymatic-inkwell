@@ -221,13 +221,14 @@ export const readPromises = createServerFn({ method: "POST" })
       };
     }
 
-    const refs = new Map<string, { id: string; text: string }>();
+    const refs = new Map<string, { id: string; title: string; text: string }>();
     const lines = written.slice(0, 10).map((scene, index) => {
       const ref = `S${index + 1}`;
       const text = normalise(scene.plain_text ?? "").slice(0, 2400);
-      refs.set(ref, { id: scene.id, text });
+      refs.set(ref, { id: scene.id, title: scene.title ?? "", text });
       return `${ref} "${scene.title}"\n${text}`;
     });
+
 
     let result: PromiseResult;
     try {
