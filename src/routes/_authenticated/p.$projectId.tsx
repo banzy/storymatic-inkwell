@@ -376,7 +376,14 @@ function Workspace() {
   const refreshResearch = () =>
     queryClient.invalidateQueries({ queryKey: ["research", projectId] });
 
+  const overview = useQuery({
+    queryKey: ["story-overview", projectId],
+    queryFn: () => overviewFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+
   const chronology = useQuery({
+
     queryKey: ["chronology", projectId],
     queryFn: () => chronologyFn({ data: { projectId } }),
     enabled: storyOpen,
