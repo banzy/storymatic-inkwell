@@ -128,6 +128,7 @@ export type Database = {
           created_at: string
           evidence: Json
           id: string
+          kind: string
           origin: string
           project_id: string
           scene_id: string | null
@@ -142,6 +143,7 @@ export type Database = {
           created_at?: string
           evidence?: Json
           id?: string
+          kind?: string
           origin?: string
           project_id: string
           scene_id?: string | null
@@ -156,6 +158,7 @@ export type Database = {
           created_at?: string
           evidence?: Json
           id?: string
+          kind?: string
           origin?: string
           project_id?: string
           scene_id?: string | null
