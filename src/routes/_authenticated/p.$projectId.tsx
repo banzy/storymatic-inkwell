@@ -1546,10 +1546,48 @@ function Workspace() {
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
                   {extrasBusy ? "Reading…" : "Read the chronology"}
                 </Button>
+              ) : storyTab === "possibilities" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runExploreScene()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Thinking…" : "Explore this scene"}
+                </Button>
               ) : null
             }
             extraSlot={
-              storyTab === "overview" ? (
+              storyTab === "possibilities" ? (
+                <PossibilitiesView
+                  possibilities={possibilities.data?.possibilities ?? []}
+                  scenes={(outline.data?.scenes ?? []).map((scene) => ({
+                    id: scene.id,
+                    title: scene.title,
+                  }))}
+                  sceneTitles={new Map(Object.entries(sceneTitles))}
+                  loading={possibilities.isLoading}
+                  onSave={(draft) => mutate.mutate(async () => onSavePossibility(draft))}
+                  onStatus={(id, status) =>
+                    mutate.mutate(async () => {
+                      await possibilityStatusFn({ data: { id, status } });
+                      await refreshPossibilities();
+                    })
+                  }
+                  onDelete={(id) =>
+                    mutate.mutate(async () => {
+                      await deletePossibilityFn({ data: { id } });
+                      await refreshPossibilities();
+                    })
+                  }
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                />
+              ) : storyTab === "overview" ? (
+
                 <OverviewView
                   overview={overview.data}
                   loading={overview.isLoading}
