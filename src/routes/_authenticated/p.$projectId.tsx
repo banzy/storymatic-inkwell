@@ -92,6 +92,15 @@ import {
   readPromises,
   savePromise,
 } from "@/lib/promises.functions";
+import { WorldView } from "@/components/studio/world-view";
+import { ResearchView, type ResearchDraft } from "@/components/studio/research-view";
+import { readWorld } from "@/lib/world.functions";
+import {
+  deleteResearchNote,
+  getResearch,
+  saveResearchNote,
+} from "@/lib/research.functions";
+
 
 import { docToMarkdown } from "@/lib/prose";
 
@@ -214,6 +223,11 @@ function Workspace() {
   const judgePromiseFn = useServerFn(judgePromise);
   const deletePromiseFn = useServerFn(deletePromise);
   const readPromisesFn = useServerFn(readPromises);
+  const readWorldFn = useServerFn(readWorld);
+  const researchFn = useServerFn(getResearch);
+  const saveResearchFn = useServerFn(saveResearchNote);
+  const deleteResearchFn = useServerFn(deleteResearchNote);
+
 
 
 
@@ -331,6 +345,42 @@ function Workspace() {
       setExtrasBusy(false);
     }
   };
+
+  const research = useQuery({
+    queryKey: ["research", projectId],
+    queryFn: () => researchFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+  const refreshResearch = () =>
+    queryClient.invalidateQueries({ queryKey: ["research", projectId] });
+
+  const runReadWorld = async () => {
+    setExtrasBusy(true);
+    setStoryMessage("Reading the world your scenes have built…");
+    try {
+      await autosave.flush();
+      const result = await readWorldFn({ data: { projectId } });
+      if (result.ok) {
+        await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+        setStoryMessage(
+          result.added === 0 && result.noted === 0
+            ? "The draft hasn't established anything solid about its world yet."
+            : `${result.added} place${result.added === 1 ? "" : "s"}, thing${
+                result.added === 1 ? "" : "s"
+              } or group${result.added === 1 ? "" : "s"} and ${result.noted} rule${
+                result.noted === 1 ? "" : "s"
+              }. These stay Storymatic's readings until you agree.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't read the world just now. Your draft is unaffected.");
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
+
 
 
   const synopsisTargets: SynopsisTarget[] = useMemo(() => {
@@ -1304,7 +1354,18 @@ function Workspace() {
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
                   {extrasBusy ? "Reading…" : "Read the relationships"}
                 </Button>
+              ) : storyTab === "world" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runReadWorld()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Reading…" : "Read the world"}
+                </Button>
               ) : storyTab === "promises" ? (
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -1354,7 +1415,50 @@ function Workspace() {
                     })
                   }
                 />
+              ) : storyTab === "world" ? (
+                <WorldView
+                  entities={(storyModel.data?.entities ?? []).filter((entity) =>
+                    ["location", "object", "faction"].includes(entity.kind),
+                  )}
+                  claims={storyModel.data?.claims ?? []}
+                  sceneTitles={new Map(Object.entries(sceneTitles))}
+                  loading={storyModel.isLoading}
+                  onSaveEntity={(id, fields) =>
+                    mutate.mutate(async () => {
+                      await saveEntityFn({ data: { id, ...fields } });
+                      await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+                    })
+                  }
+                  onClaimAction={(id, action) =>
+                    mutate.mutate(async () => {
+                      await claimJudgementFn({ data: { id, action } });
+                      await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
+                    })
+                  }
+                  onOpenEvidence={(sceneId, quote) => {
+                    setStoryOpen(false);
+                    void openEvidence(sceneId, quote);
+                  }}
+                />
+              ) : storyTab === "research" ? (
+                <ResearchView
+                  notes={research.data?.notes ?? []}
+                  loading={research.isLoading}
+                  onSave={(draft: ResearchDraft) =>
+                    mutate.mutate(async () => {
+                      await saveResearchFn({ data: { projectId, ...draft } });
+                      await refreshResearch();
+                    })
+                  }
+                  onDelete={(id) =>
+                    mutate.mutate(async () => {
+                      await deleteResearchFn({ data: { id } });
+                      await refreshResearch();
+                    })
+                  }
+                />
               ) : storyTab === "promises" ? (
+
                 <PromisesView
                   promises={promises.data?.promises ?? []}
                   scenes={(outline.data?.scenes ?? []).map((scene) => ({
