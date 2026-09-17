@@ -91,7 +91,9 @@ export const getStoryExtras = createServerFn({ method: "GET" })
           "id, scene_id, title, body, why_it_matters, uncertainty, status, origin, evidence, created_at",
         )
         .eq("project_id", data.projectId)
+        .eq("kind", "discovery")
         .order("created_at", { ascending: false }),
+
     ]);
     for (const result of [synopses, relationships, beats, discoveries]) {
       if (result.error) throw new Error(result.error.message);
