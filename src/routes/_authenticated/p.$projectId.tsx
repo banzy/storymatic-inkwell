@@ -1467,7 +1467,25 @@ function Workspace() {
               ) : null
             }
             extraSlot={
-              storyTab === "timeline" ? (
+              storyTab === "overview" ? (
+                <OverviewView
+                  overview={overview.data}
+                  loading={overview.isLoading}
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                  onGoToTab={(tab) => {
+                    setStoryMessage(null);
+                    setStoryTab(tab);
+                  }}
+                  onOpenOutline={() => {
+                    setStoryOpen(false);
+                    setOutlineOpen(true);
+                  }}
+                />
+              ) : storyTab === "timeline" ? (
+
                 <ChronologyView
                   events={chronology.data?.events ?? []}
                   scenes={outline.data?.scenes ?? []}
