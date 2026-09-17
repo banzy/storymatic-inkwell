@@ -30,17 +30,27 @@ const normalise = (text: string) =>
     .trim();
 
 /**
- * A quote counts as backed when it appears in the scene verbatim, or when a
- * substantial opening run of it does — long quotes are often clipped at the end.
- * Nothing looser than that: an unbacked reading is dropped, never kept.
+ * Finds the passage a reading rests on, and returns it as it stands in the
+ * manuscript — never as the model retyped it. A quote is accepted verbatim, or
+ * by the longest run of at least eight consecutive words that the scene really
+ * contains. Anything weaker is dropped rather than kept.
  */
-const isBacked = (sceneText: string, quote: string) => {
-  const clean = normalise(quote);
-  if (clean.length < 12) return false;
-  if (sceneText.includes(clean)) return true;
-  const opening = clean.slice(0, 48).trim();
-  return opening.length >= 24 && sceneText.includes(opening);
+const backingQuote = (sceneText: string, quote: string): string | null => {
+  const clean = normalise(quote ?? "");
+  if (clean.length < 12) return null;
+  const index = sceneText.indexOf(clean);
+  if (index >= 0) return sceneText.slice(index, index + clean.length);
+  const words = clean.split(" ").filter(Boolean);
+  for (let length = words.length; length >= 8; length -= 1) {
+    for (let start = 0; start + length <= words.length; start += 1) {
+      const run = words.slice(start, start + length).join(" ");
+      const at = sceneText.indexOf(run);
+      if (at >= 0) return sceneText.slice(at, at + run.length);
+    }
+  }
+  return null;
 };
+
 
 
 /** Everything the Promises view reads. RLS scopes it to the owner. */
