@@ -295,9 +295,10 @@ export const readPromises = createServerFn({ method: "POST" })
         promise: item.promise.trim().slice(0, 1200),
         subject: item.subject?.trim().slice(0, 200) || null,
         setup_scene_id: setup.id,
-        setup_quote: setupQuote.slice(0, 400),
-        payoff_scene_id: hasPayoff ? payoff.id : null,
-        payoff_quote: hasPayoff ? payoffQuote!.slice(0, 400) : null,
+        setup_quote: setup.quote.slice(0, 400),
+        payoff_scene_id: payoff ? payoff.id : null,
+        payoff_quote: payoff ? payoff.quote.slice(0, 400) : null,
+
         status: hasPayoff ? "paid" : "open",
         truth_type: "inferred",
         origin: "analysis",
