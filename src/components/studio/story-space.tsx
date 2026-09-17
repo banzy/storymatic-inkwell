@@ -402,6 +402,8 @@ export function StorySpace(props: {
           tab === "promises" ||
           tab === "world" ||
           tab === "research" ||
+          tab === "overview" ||
+
           tab === "timeline" ||
 
 
