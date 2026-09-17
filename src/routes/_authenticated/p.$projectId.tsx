@@ -234,6 +234,13 @@ function Workspace() {
   const deletePromiseFn = useServerFn(deletePromise);
   const readPromisesFn = useServerFn(readPromises);
   const readWorldFn = useServerFn(readWorld);
+  const chronologyFn = useServerFn(getChronology);
+  const saveEventFn = useServerFn(saveStoryEvent);
+  const judgeEventFn = useServerFn(judgeStoryEvent);
+  const deleteEventFn = useServerFn(deleteStoryEvent);
+  const moveEventFn = useServerFn(moveStoryEvent);
+  const readChronologyFn = useServerFn(readChronology);
+
   const researchFn = useServerFn(getResearch);
   const saveResearchFn = useServerFn(saveResearchNote);
   const deleteResearchFn = useServerFn(deleteResearchNote);
