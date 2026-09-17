@@ -1354,7 +1354,18 @@ function Workspace() {
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
                   {extrasBusy ? "Reading…" : "Read the relationships"}
                 </Button>
+              ) : storyTab === "world" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runReadWorld()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Reading…" : "Read the world"}
+                </Button>
               ) : storyTab === "promises" ? (
+
                 <Button
                   variant="outline"
                   size="sm"
