@@ -400,6 +400,58 @@ function Workspace() {
     enabled: storyOpen,
   });
 
+  const possibilities = useQuery({
+    queryKey: ["possibilities", projectId],
+    queryFn: () => possibilitiesFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+  const refreshPossibilities = () =>
+    queryClient.invalidateQueries({ queryKey: ["possibilities", projectId] });
+
+  const runExploreScene = async () => {
+    if (!activeSceneId) {
+      setStoryMessage("Open a scene first, and Storymatic will explore that one.");
+      return;
+    }
+    setExtrasBusy(true);
+    setStoryMessage("Thinking about ways this scene could go…");
+    try {
+      await autosave.flush();
+      const result = await exploreSceneFn({
+        data: { projectId, sceneId: activeSceneId, question: null },
+      });
+      if (result.ok) {
+        await refreshPossibilities();
+        setStoryMessage(
+          result.added === 0
+            ? "Nothing worth putting forward for this scene."
+            : `${result.added} way${result.added === 1 ? "" : "s"} “${result.sceneTitle}” could go. None of it is written anywhere — it's yours to take up or set aside.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't explore this scene just now. Your draft is unaffected.");
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
+
+  const onSavePossibility = async (draft: PossibilityDraft) => {
+    await savePossibilityFn({
+      data: {
+        projectId,
+        id: draft.id,
+        sceneId: draft.sceneId,
+        name: draft.name,
+        premise: draft.premise,
+        notes: draft.notes,
+      },
+    });
+    await refreshPossibilities();
+  };
+
+
   const chronology = useQuery({
 
     queryKey: ["chronology", projectId],
