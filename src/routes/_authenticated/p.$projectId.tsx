@@ -319,7 +319,7 @@ function Workspace() {
         await refreshPromises();
         setStoryMessage(
           result.noted === 0
-            ? `Nothing is planted clearly enough to list yet. [debug dropped=${result.dropped}]`
+            ? "Nothing is planted clearly enough to list yet."
             : `${result.noted} promise${result.noted === 1 ? "" : "s"}, ${result.paid} already paid off. These are Storymatic's readings until you confirm them.`,
         );
       } else {
