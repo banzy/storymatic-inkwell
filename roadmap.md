@@ -70,7 +70,9 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
 - [x] World / story bible: places, recurring objects, groups and the rules the draft
       establishes, each with the passage behind it; author wording never overwritten.
       Verified in browser on the sample.
-- [ ] Themes & motifs as observations only.
+- [x] Themes & motifs: what the scenes keep returning to, as readings only — note your own or read
+      the draft; agree / set aside / bring back; kept out of Discoveries. Verified in browser
+      (author-noted themes persist; AI reading blocked only by exhausted workspace AI credits).
 - [x] Research & Notes: your own notes and sources, kept clearly outside story canon and
       never read back as something the book establishes. Verified in browser.
 - [x] Story dashboard: calm editorial Overview tab — where the draft stands, what was touched
