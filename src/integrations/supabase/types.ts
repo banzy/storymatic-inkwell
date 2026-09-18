@@ -994,6 +994,129 @@ export type Database = {
           },
         ]
       }
+      story_thread_beats: {
+        Row: {
+          author_confirmed: boolean
+          created_at: string
+          evidence: Json
+          id: string
+          note: string
+          project_id: string
+          role: string
+          scene_id: string | null
+          story_position: number | null
+          thread_id: string
+          truth_type: string
+          updated_at: string
+        }
+        Insert: {
+          author_confirmed?: boolean
+          created_at?: string
+          evidence?: Json
+          id?: string
+          note: string
+          project_id: string
+          role?: string
+          scene_id?: string | null
+          story_position?: number | null
+          thread_id: string
+          truth_type?: string
+          updated_at?: string
+        }
+        Update: {
+          author_confirmed?: boolean
+          created_at?: string
+          evidence?: Json
+          id?: string
+          note?: string
+          project_id?: string
+          role?: string
+          scene_id?: string | null
+          story_position?: number | null
+          thread_id?: string
+          truth_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_thread_beats_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_thread_beats_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "scenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_thread_beats_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "story_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_threads: {
+        Row: {
+          author_confirmed: boolean
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          notes: string | null
+          origin: string
+          position: number
+          premise: string
+          project_id: string
+          status: string
+          truth_type: string
+          updated_at: string
+        }
+        Insert: {
+          author_confirmed?: boolean
+          created_at?: string
+          id?: string
+          kind?: string
+          name: string
+          notes?: string | null
+          origin?: string
+          position?: number
+          premise?: string
+          project_id: string
+          status?: string
+          truth_type?: string
+          updated_at?: string
+        }
+        Update: {
+          author_confirmed?: boolean
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          notes?: string | null
+          origin?: string
+          position?: number
+          premise?: string
+          project_id?: string
+          status?: string
+          truth_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_threads_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
