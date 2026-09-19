@@ -479,6 +479,7 @@ export function StorySpace(props: {
                   onOpenScene={onOpenScene}
                   onMoveScene={onMoveScene}
                   onSaveCard={onSaveCard}
+                  onDropCard={onDropCard}
                 />
               ))}
             </div>
