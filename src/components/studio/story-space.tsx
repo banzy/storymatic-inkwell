@@ -351,6 +351,7 @@ export function StorySpace(props: {
     onOpenScene,
     onMoveScene,
     onSaveCard,
+    onDropCard,
     onOpenEvidence,
     extraSlot,
     headerAction,
