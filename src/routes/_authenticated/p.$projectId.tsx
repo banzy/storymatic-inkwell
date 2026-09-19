@@ -1689,7 +1689,18 @@ function Workspace() {
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
                   {extrasBusy ? "Reading…" : "Read for themes"}
                 </Button>
+              ) : storyTab === "questions" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runCompareScenes()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Comparing…" : "Compare the scenes"}
+                </Button>
               ) : storyTab === "discoveries" ? (
+
 
                 <Button
                   variant="outline"
