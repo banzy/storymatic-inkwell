@@ -54,6 +54,7 @@ const TAB_BLURBS: Record<StorySpaceTab, string> = {
   world: "The places, things, groups and rules your draft has established.",
   research: "Your own notes and sources, kept outside the story.",
   themes: "What the scenes keep returning to — read as a question, never a verdict.",
+  questions: "Where two scenes seem to disagree, with both passages beside each other.",
   discoveries: "Quiet notes on what the scenes together seem to say.",
 
   possibilities: "Ways a scene could go, held beside the draft.",
