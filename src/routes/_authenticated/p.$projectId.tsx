@@ -95,6 +95,16 @@ import {
 import { WorldView } from "@/components/studio/world-view";
 import { ResearchView, type ResearchDraft } from "@/components/studio/research-view";
 import { ThemesView, type ThemeDraft } from "@/components/studio/themes-view";
+import { ThreadsView, type ThreadDraft } from "@/components/studio/threads-view";
+import {
+  deleteThread,
+  getThreads,
+  judgeThread,
+  judgeThreadBeat,
+  readThreads,
+  saveThread,
+  setThreadStatus,
+} from "@/lib/threads.functions";
 
 import { readWorld } from "@/lib/world.functions";
 import { OverviewView } from "@/components/studio/overview-view";
@@ -277,6 +287,14 @@ function Workspace() {
   const deleteThemeFn = useServerFn(deleteTheme);
   const readThemesFn = useServerFn(readThemes);
 
+  const threadsFn = useServerFn(getThreads);
+  const saveThreadFn = useServerFn(saveThread);
+  const judgeThreadFn = useServerFn(judgeThread);
+  const judgeThreadBeatFn = useServerFn(judgeThreadBeat);
+  const threadStatusFn = useServerFn(setThreadStatus);
+  const deleteThreadFn = useServerFn(deleteThread);
+  const readThreadsFn = useServerFn(readThreads);
+
 
 
 
@@ -403,6 +421,37 @@ function Workspace() {
   });
   const refreshResearch = () =>
     queryClient.invalidateQueries({ queryKey: ["research", projectId] });
+
+  const threads = useQuery({
+    queryKey: ["story-threads", projectId],
+    queryFn: () => threadsFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+  const refreshThreads = () =>
+    queryClient.invalidateQueries({ queryKey: ["story-threads", projectId] });
+
+  const runReadThreads = async () => {
+    setExtrasBusy(true);
+    setStoryMessage("Reading what the scenes are carrying…");
+    try {
+      await autosave.flush();
+      const result = await readThreadsFn({ data: { projectId } });
+      if (result.ok) {
+        await refreshThreads();
+        setStoryMessage(
+          result.noted === 0
+            ? "Nothing runs across the scenes clearly enough to name yet. This grows with the draft."
+            : `${result.noted} thread${result.noted === 1 ? "" : "s"}, picked up ${result.moments} time${result.moments === 1 ? "" : "s"} in the draft. Each stays Storymatic's reading until you agree.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't read the threads just now. Your draft is unaffected.");
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
 
   const themes = useQuery({
     queryKey: ["themes", projectId],
