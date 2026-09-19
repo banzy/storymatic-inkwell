@@ -1919,6 +1919,52 @@ function Workspace() {
                     void openEvidence(sceneId, quote);
                   }}
                 />
+              ) : storyTab === "questions" ? (
+                <QuestionsView
+                  questions={questions.data?.questions ?? []}
+                  stale={questions.data?.stale ?? []}
+                  scenes={(outline.data?.scenes ?? []).map((scene) => ({
+                    id: scene.id,
+                    title: scene.title,
+                  }))}
+                  sceneTitles={new Map(Object.entries(sceneTitles))}
+                  loading={questions.isLoading}
+                  onSave={(draft: QuestionDraft) =>
+                    mutate.mutate(async () => {
+                      await saveQuestionFn({ data: { projectId, ...draft } });
+                      await refreshQuestions();
+                    })
+                  }
+                  onDelete={(id) =>
+                    mutate.mutate(async () => {
+                      await deleteQuestionFn({ data: { id } });
+                      await refreshQuestions();
+                    })
+                  }
+                  onStatus={(id, status) =>
+                    mutate.mutate(async () => {
+                      await observationStatusFn({ data: { id, status } });
+                      await refreshQuestions();
+                    })
+                  }
+                  onClaimAction={(id, action) =>
+                    mutate.mutate(async () => {
+                      await claimJudgementFn({ data: { id, action } });
+                      await refreshQuestions();
+                      await queryClient.invalidateQueries({
+                        queryKey: ["story-model", projectId],
+                      });
+                    })
+                  }
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                  onOpenEvidence={(sceneId, quote) => {
+                    setStoryOpen(false);
+                    void openEvidence(sceneId, quote);
+                  }}
+                />
               ) : storyTab === "plot" ? (
                 <ThreadsView
                   threads={threads.data?.threads ?? []}
