@@ -95,6 +95,13 @@ import {
 import { WorldView } from "@/components/studio/world-view";
 import { ResearchView, type ResearchDraft } from "@/components/studio/research-view";
 import { ThemesView, type ThemeDraft } from "@/components/studio/themes-view";
+import { QuestionsView, type QuestionDraft } from "@/components/studio/questions-view";
+import {
+  deleteQuestion,
+  getQuestions,
+  readContradictions,
+  saveQuestion,
+} from "@/lib/contradictions.functions";
 import { ThreadsView, type ThreadDraft } from "@/components/studio/threads-view";
 import {
   deleteThread,
