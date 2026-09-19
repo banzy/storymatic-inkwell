@@ -1624,6 +1624,15 @@ function Workspace() {
                 await refreshOutline();
               })
             }
+            onDropCard={(sceneId, targetSceneId, before) => {
+              const title = sceneTitles[sceneId] ?? "that scene";
+              mutate.mutate(async () => {
+                await placeSceneFn({ data: { sceneId, targetSceneId, before } });
+                await refreshOutline();
+                // Dragging a card only changes the order; the writing is untouched.
+                await runMoveReview(sceneId, title);
+              });
+            }}
             onOpenEvidence={(sceneId, quote) => {
               setStoryOpen(false);
               void openEvidence(sceneId, quote);
