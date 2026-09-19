@@ -671,6 +671,11 @@ function Workspace() {
 
   const synopsisTargets: SynopsisTarget[] = useMemo(() => {
     const chapters = outline.data?.chapters ?? [];
+    const scenes = outline.data?.scenes ?? [];
+    const people = (storyModel.data?.entities ?? []).filter(
+      (entity) => entity.kind === "character",
+    );
+    const threadRows = threads.data?.threads ?? [];
     return [
       { scope: "story" as const, targetId: null, label: "The whole story so far" },
       ...chapters.map((chapter) => ({
@@ -678,8 +683,23 @@ function Workspace() {
         targetId: chapter.id,
         label: chapter.title,
       })),
+      ...scenes.map((scene) => ({
+        scope: "scene" as const,
+        targetId: scene.id,
+        label: scene.title,
+      })),
+      ...people.map((person) => ({
+        scope: "character" as const,
+        targetId: person.id,
+        label: person.name,
+      })),
+      ...threadRows.map((thread) => ({
+        scope: "thread" as const,
+        targetId: thread.id,
+        label: thread.name,
+      })),
     ];
-  }, [outline.data]);
+  }, [outline.data, storyModel.data, threads.data]);
 
   const runWriteSynopsis = async (target: SynopsisTarget) => {
     const key = `${target.scope}:${target.targetId ?? ""}`;
