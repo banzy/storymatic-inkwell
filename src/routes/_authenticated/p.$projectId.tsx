@@ -158,6 +158,7 @@ import {
   listProjects,
   listRevisions,
   moveNode,
+  placeScene,
   renameNode,
   resetSampleProject,
   restoreRevision,
