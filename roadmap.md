@@ -62,7 +62,9 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
 - [x] Promises & payoffs: what the draft sets up, where it pays off, what's still owed;
       author-noted or read from the draft, each with the manuscript passage behind it;
       readings stay unconfirmed until the author agrees. Verified in browser.
-- [ ] Plot threads, deeper: subplots, mysteries, reveals as first-class, planned vs written.
+- [x] Plot threads, deeper: story_threads + story_thread_beats — subplots, mysteries, reveals,
+      open questions, conflicts and goals as first-class, planned vs running vs closed, author-noted
+      or read from the draft, each pick-up point quoted; readings stay unconfirmed until agreed.
 - [x] Timeline, deeper: story chronology in its own order (story_events), timings kept in the
       draft's own words, certainty preserved, author reorder / confirm / decline, own entries.
       Verified in browser.
