@@ -487,7 +487,8 @@ export function StorySpace(props: {
                   onDropCard={onDropCard}
                 />
               ))}
-            </div>
+              </div>
+            </>
           )
         ) : tab === "plot" ? (
           threads.length === 0 && looseThreadClaims.length === 0 ? (
