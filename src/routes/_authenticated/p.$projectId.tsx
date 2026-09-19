@@ -496,6 +496,36 @@ function Workspace() {
     }
   };
 
+  const questions = useQuery({
+    queryKey: ["questions", projectId],
+    queryFn: () => questionsFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+  const refreshQuestions = () =>
+    queryClient.invalidateQueries({ queryKey: ["questions", projectId] });
+
+  const runCompareScenes = async () => {
+    setExtrasBusy(true);
+    setStoryMessage("Comparing the scenes with each other…");
+    try {
+      await autosave.flush();
+      const result = await readContradictionsFn({ data: { projectId } });
+      if (result.ok) {
+        await refreshQuestions();
+        setStoryMessage(
+          result.added === 0
+            ? "Nothing in the scenes seems to disagree. Nothing is being called correct — this is only what Storymatic can see."
+            : `${result.added} question${result.added === 1 ? "" : "s"} to look at, each with both passages. None of it is a mistake until you say so.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't compare the scenes just now. Your draft is unaffected.");
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
 
   const overview = useQuery({
     queryKey: ["story-overview", projectId],
