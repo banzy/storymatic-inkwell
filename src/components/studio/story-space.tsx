@@ -468,7 +468,12 @@ export function StorySpace(props: {
           scenes.length === 0 ? (
             <p className="text-sm text-muted-foreground">No scenes yet.</p>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <>
+              <p className="mb-3 max-w-prose text-xs text-muted-foreground">
+                Drag a card onto another to move that scene, or use the arrows. Either way the
+                writing stays exactly as you left it.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {scenes.map((scene, index) => (
                 <SceneCard
                   key={scene.id}
