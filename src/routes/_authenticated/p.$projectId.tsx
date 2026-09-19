@@ -95,6 +95,13 @@ import {
 import { WorldView } from "@/components/studio/world-view";
 import { ResearchView, type ResearchDraft } from "@/components/studio/research-view";
 import { ThemesView, type ThemeDraft } from "@/components/studio/themes-view";
+import { QuestionsView, type QuestionDraft } from "@/components/studio/questions-view";
+import {
+  deleteQuestion,
+  getQuestions,
+  readContradictions,
+  saveQuestion,
+} from "@/lib/contradictions.functions";
 import { ThreadsView, type ThreadDraft } from "@/components/studio/threads-view";
 import {
   deleteThread,
@@ -286,6 +293,11 @@ function Workspace() {
   const saveThemeFn = useServerFn(saveTheme);
   const deleteThemeFn = useServerFn(deleteTheme);
   const readThemesFn = useServerFn(readThemes);
+
+  const questionsFn = useServerFn(getQuestions);
+  const saveQuestionFn = useServerFn(saveQuestion);
+  const deleteQuestionFn = useServerFn(deleteQuestion);
+  const readContradictionsFn = useServerFn(readContradictions);
 
   const threadsFn = useServerFn(getThreads);
   const saveThreadFn = useServerFn(saveThread);
@@ -484,6 +496,36 @@ function Workspace() {
     }
   };
 
+  const questions = useQuery({
+    queryKey: ["questions", projectId],
+    queryFn: () => questionsFn({ data: { projectId } }),
+    enabled: storyOpen,
+  });
+  const refreshQuestions = () =>
+    queryClient.invalidateQueries({ queryKey: ["questions", projectId] });
+
+  const runCompareScenes = async () => {
+    setExtrasBusy(true);
+    setStoryMessage("Comparing the scenes with each other…");
+    try {
+      await autosave.flush();
+      const result = await readContradictionsFn({ data: { projectId } });
+      if (result.ok) {
+        await refreshQuestions();
+        setStoryMessage(
+          result.added === 0
+            ? "Nothing in the scenes seems to disagree. Nothing is being called correct — this is only what Storymatic can see."
+            : `${result.added} question${result.added === 1 ? "" : "s"} to look at, each with both passages. None of it is a mistake until you say so.`,
+        );
+      } else {
+        setStoryMessage(result.message);
+      }
+    } catch {
+      setStoryMessage("Storymatic couldn't compare the scenes just now. Your draft is unaffected.");
+    } finally {
+      setExtrasBusy(false);
+    }
+  };
 
   const overview = useQuery({
     queryKey: ["story-overview", projectId],
@@ -1647,7 +1689,18 @@ function Workspace() {
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
                   {extrasBusy ? "Reading…" : "Read for themes"}
                 </Button>
+              ) : storyTab === "questions" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={extrasBusy}
+                  onClick={() => void runCompareScenes()}
+                >
+                  {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+                  {extrasBusy ? "Comparing…" : "Compare the scenes"}
+                </Button>
               ) : storyTab === "discoveries" ? (
+
 
                 <Button
                   variant="outline"
@@ -1855,6 +1908,52 @@ function Workspace() {
                     mutate.mutate(async () => {
                       await observationStatusFn({ data: { id, status } });
                       await refreshThemes();
+                    })
+                  }
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                  onOpenEvidence={(sceneId, quote) => {
+                    setStoryOpen(false);
+                    void openEvidence(sceneId, quote);
+                  }}
+                />
+              ) : storyTab === "questions" ? (
+                <QuestionsView
+                  questions={questions.data?.questions ?? []}
+                  stale={questions.data?.stale ?? []}
+                  scenes={(outline.data?.scenes ?? []).map((scene) => ({
+                    id: scene.id,
+                    title: scene.title,
+                  }))}
+                  sceneTitles={new Map(Object.entries(sceneTitles))}
+                  loading={questions.isLoading}
+                  onSave={(draft: QuestionDraft) =>
+                    mutate.mutate(async () => {
+                      await saveQuestionFn({ data: { projectId, ...draft } });
+                      await refreshQuestions();
+                    })
+                  }
+                  onDelete={(id) =>
+                    mutate.mutate(async () => {
+                      await deleteQuestionFn({ data: { id } });
+                      await refreshQuestions();
+                    })
+                  }
+                  onStatus={(id, status) =>
+                    mutate.mutate(async () => {
+                      await observationStatusFn({ data: { id, status } });
+                      await refreshQuestions();
+                    })
+                  }
+                  onClaimAction={(id, action) =>
+                    mutate.mutate(async () => {
+                      await claimJudgementFn({ data: { id, action } });
+                      await refreshQuestions();
+                      await queryClient.invalidateQueries({
+                        queryKey: ["story-model", projectId],
+                      });
                     })
                   }
                   onOpenScene={(sceneId) => {

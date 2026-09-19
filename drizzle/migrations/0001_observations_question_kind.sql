@@ -1,0 +1,2 @@
+ALTER TABLE public.observations DROP CONSTRAINT IF EXISTS observations_kind_check;
+ALTER TABLE public.observations ADD CONSTRAINT observations_kind_check CHECK (kind IN ('discovery', 'theme', 'question'));
