@@ -154,6 +154,12 @@ function SceneCard(props: {
         {chapterTitle ?? "Chapter"} · {scene.word_count} words
       </p>
       <h3 className="mt-1 font-serif text-base leading-snug">{scene.title}</h3>
+      {over && (
+        <p className="mt-1 text-xs text-primary">
+          {over === "before" ? "Lands before this scene" : "Lands after this scene"}
+        </p>
+      )}
+
 
       {editing ? (
         <div className="mt-2 space-y-2">
