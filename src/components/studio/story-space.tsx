@@ -125,7 +125,35 @@ function SceneCard(props: {
   const [storyTime, setStoryTime] = useState(scene.story_time ?? "");
 
   return (
-    <article className="flex flex-col rounded-md border border-border bg-card p-3">
+    <article
+      draggable={!editing}
+      onDragStart={(event) => {
+        event.dataTransfer.setData("text/storymatic-scene", scene.id);
+        event.dataTransfer.effectAllowed = "move";
+      }}
+      onDragOver={(event) => {
+        if (!event.dataTransfer.types.includes("text/storymatic-scene")) return;
+        event.preventDefault();
+        const box = event.currentTarget.getBoundingClientRect();
+        setOver(event.clientY < box.top + box.height / 2 ? "before" : "after");
+      }}
+      onDragLeave={() => setOver(null)}
+      onDrop={(event) => {
+        const dragged = event.dataTransfer.getData("text/storymatic-scene");
+        const side = over;
+        setOver(null);
+        if (!dragged || dragged === scene.id) return;
+        event.preventDefault();
+        onDropCard(dragged, scene.id, side !== "after");
+      }}
+      className={`flex cursor-grab flex-col rounded-md border bg-card p-3 ${
+        over === "before"
+          ? "border-primary shadow-[inset_0_2px_0_0_var(--color-primary)]"
+          : over === "after"
+            ? "border-primary shadow-[inset_0_-2px_0_0_var(--color-primary)]"
+            : "border-border"
+      }`}
+    >
       <p className="text-xs text-muted-foreground">
         {chapterTitle ?? "Chapter"} · {scene.word_count} words
       </p>
