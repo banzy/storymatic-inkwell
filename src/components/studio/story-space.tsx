@@ -407,6 +407,7 @@ export function StorySpace(props: {
         {loading ? (
           <p className="text-sm text-muted-foreground">Gathering your story…</p>
         ) : tab === "synopsis" ||
+          tab === "plot" ||
           tab === "people" ||
           tab === "promises" ||
           tab === "world" ||
