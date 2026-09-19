@@ -12,7 +12,25 @@ import type {
   SynopsisRow,
 } from "@/lib/storybrain.functions";
 
-export type SynopsisTarget = { scope: "story" | "chapter"; targetId: string | null; label: string };
+export type SynopsisScope = "story" | "chapter" | "scene" | "character" | "thread";
+
+export type SynopsisTarget = { scope: SynopsisScope; targetId: string | null; label: string };
+
+const SCOPE_LABEL: Record<SynopsisScope, string> = {
+  story: "The whole story",
+  chapter: "By chapter",
+  scene: "By scene",
+  character: "By person",
+  thread: "By thread",
+};
+
+const SCOPE_BLURB: Record<SynopsisScope, string> = {
+  story: "Everything the draft has reached so far.",
+  chapter: "One summary for each chapter.",
+  scene: "A line or two for each scene as it stands.",
+  character: "One person's part in the story, and where the draft leaves them.",
+  thread: "One thread followed through the scenes that carry it.",
+};
 
 const READING_LABEL = "Storymatic's reading — yours to confirm";
 
