@@ -30,8 +30,12 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
       threads, what the draft establishes) and Characters view (identity, current
       state, notes, what a character knows up to the open scene), confirm/set-aside
       per claim. Verified in browser on the sample.
-- [ ] Increment 3b — Director/author intent surfacing, quiet observations →
-      Discoveries, contradiction + needs-review handling across scenes.
+- [x] Increment 3b — Director/author intent surfacing, quiet observations →
+      Discoveries, contradiction + needs-review handling across scenes: Questions tab
+      (observations kind='question') — cross-scene disagreements as questions with both
+      passages, author-noted questions, "I meant that" / set aside / bring back, plus
+      "Worth another look" listing readings whose backing wording changed (still right /
+      not any more / leave it open). Verified in browser.
 - [x] Dynamic Outline: two-lane view (Planned / As written), planned steps with intent,
       reorder and set aside, author or inferred links to scenes, quiet divergence notes
       (not in the draft yet, not in the plan, happens earlier than planned), "Compare
