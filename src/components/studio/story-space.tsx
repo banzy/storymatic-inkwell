@@ -113,20 +113,53 @@ function SceneCard(props: {
   onOpenScene: (sceneId: string) => void;
   onMoveScene: (sceneId: string, direction: "up" | "down") => void;
   onSaveCard: (sceneId: string, patch: CardPatch) => void;
+  onDropCard: (sceneId: string, targetSceneId: string, before: boolean) => void;
 }) {
-  const { scene, chapterTitle, first, last, onOpenScene, onMoveScene, onSaveCard } = props;
+  const { scene, chapterTitle, first, last, onOpenScene, onMoveScene, onSaveCard, onDropCard } =
+    props;
   const [editing, setEditing] = useState(false);
+  const [over, setOver] = useState<"before" | "after" | null>(null);
   const [summary, setSummary] = useState(scene.summary ?? "");
   const [pov, setPov] = useState(scene.pov ?? "");
   const [location, setLocation] = useState(scene.location ?? "");
   const [storyTime, setStoryTime] = useState(scene.story_time ?? "");
 
   return (
-    <article className="flex flex-col rounded-md border border-border bg-card p-3">
+    <article
+      draggable={!editing}
+      onDragStart={(event) => {
+        event.dataTransfer.setData("text/storymatic-scene", scene.id);
+        event.dataTransfer.effectAllowed = "move";
+      }}
+      onDragOver={(event) => {
+        if (!event.dataTransfer.types.includes("text/storymatic-scene")) return;
+        event.preventDefault();
+        const box = event.currentTarget.getBoundingClientRect();
+        setOver(event.clientY < box.top + box.height / 2 ? "before" : "after");
+      }}
+      onDragLeave={() => setOver(null)}
+      onDrop={(event) => {
+        const dragged = event.dataTransfer.getData("text/storymatic-scene");
+        const side = over;
+        setOver(null);
+        if (!dragged || dragged === scene.id) return;
+        event.preventDefault();
+        onDropCard(dragged, scene.id, side !== "after");
+      }}
+      className={`flex cursor-grab flex-col rounded-md border bg-card p-3 ${
+        over ? "border-primary ring-1 ring-primary" : "border-border"
+      }`}
+    >
       <p className="text-xs text-muted-foreground">
         {chapterTitle ?? "Chapter"} · {scene.word_count} words
       </p>
       <h3 className="mt-1 font-serif text-base leading-snug">{scene.title}</h3>
+      {over && (
+        <p className="mt-1 text-xs text-primary">
+          {over === "before" ? "Lands before this scene" : "Lands after this scene"}
+        </p>
+      )}
+
 
       {editing ? (
         <div className="mt-2 space-y-2">
@@ -293,6 +326,7 @@ export function StorySpace(props: {
   onOpenScene: (sceneId: string) => void;
   onMoveScene: (sceneId: string, direction: "up" | "down") => void;
   onSaveCard: (sceneId: string, patch: CardPatch) => void;
+  onDropCard: (sceneId: string, targetSceneId: string, before: boolean) => void;
   onOpenEvidence: (sceneId: string, quote: string) => void;
   /** The Synopsis, Relationships and Discoveries bodies, composed by the workspace. */
   extraSlot?: ReactNode;
@@ -317,6 +351,7 @@ export function StorySpace(props: {
     onOpenScene,
     onMoveScene,
     onSaveCard,
+    onDropCard,
     onOpenEvidence,
     extraSlot,
     headerAction,
@@ -433,7 +468,12 @@ export function StorySpace(props: {
           scenes.length === 0 ? (
             <p className="text-sm text-muted-foreground">No scenes yet.</p>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <>
+              <p className="mb-3 max-w-prose text-xs text-muted-foreground">
+                Drag a card onto another to move that scene, or use the arrows. Either way the
+                writing stays exactly as you left it.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {scenes.map((scene, index) => (
                 <SceneCard
                   key={scene.id}
@@ -444,9 +484,11 @@ export function StorySpace(props: {
                   onOpenScene={onOpenScene}
                   onMoveScene={onMoveScene}
                   onSaveCard={onSaveCard}
+                  onDropCard={onDropCard}
                 />
               ))}
-            </div>
+              </div>
+            </>
           )
         ) : tab === "plot" ? (
           threads.length === 0 && looseThreadClaims.length === 0 ? (

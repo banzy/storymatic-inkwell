@@ -172,7 +172,57 @@ export const writeSynopsis = createServerFn({ method: "POST" })
         : await scenesQuery;
     if (error) throw new Error(error.message);
 
-    const written = (scenes ?? []).filter((scene) => (scene.plain_text ?? "").trim().length > 40);
+    // A person's or thread's summary only draws on the scenes that actually carry them.
+    let subject: string | null = null;
+    let onlyScenes: Set<string> | null = null;
+    if (data.scope === "character" && data.targetId) {
+      const { data: person } = await supabase
+        .from("story_entities")
+        .select("name, aliases")
+        .eq("id", data.targetId)
+        .maybeSingle();
+      if (!person) {
+        return {
+          ok: false as const,
+          kind: "empty",
+          message: "Storymatic doesn't know that person yet.",
+        };
+      }
+      subject = person.name;
+      const names = [person.name, ...(person.aliases ?? [])]
+        .map((name) => name.trim().toLowerCase())
+        .filter((name) => name.length > 1);
+      onlyScenes = new Set(
+        (scenes ?? [])
+          .filter((scene) => {
+            const text = (scene.plain_text ?? "").toLowerCase();
+            return names.some((name) => text.includes(name));
+          })
+          .map((scene) => scene.id),
+      );
+    } else if (data.scope === "thread" && data.targetId) {
+      const [threadResult, beatsResult] = await Promise.all([
+        supabase.from("story_threads").select("name, premise").eq("id", data.targetId).maybeSingle(),
+        supabase.from("story_thread_beats").select("scene_id").eq("thread_id", data.targetId),
+      ]);
+      const thread = threadResult.data;
+      if (!thread) {
+        return {
+          ok: false as const,
+          kind: "empty",
+          message: "Storymatic doesn't know that thread yet.",
+        };
+      }
+      subject = thread.premise?.trim() ? `${thread.name} — ${thread.premise}` : thread.name;
+      const ids = (beatsResult.data ?? [])
+        .map((beat) => beat.scene_id)
+        .filter((id): id is string => Boolean(id));
+      onlyScenes = ids.length > 0 ? new Set(ids) : null;
+    }
+
+    const written = (scenes ?? [])
+      .filter((scene) => (scene.plain_text ?? "").trim().length > 40)
+      .filter((scene) => !onlyScenes || onlyScenes.has(scene.id));
     if (written.length === 0) {
       return {
         ok: false as const,
@@ -195,12 +245,18 @@ export const writeSynopsis = createServerFn({ method: "POST" })
         : data.scope === "story"
           ? "Write two to four short paragraphs."
           : "Write one short paragraph.";
+    const focus =
+      data.scope === "character" && subject
+        ? `Summarise only ${subject}'s part in the draft: what they do, what happens to them, and where the draft leaves them. Do not summarise the rest of the book, and do not credit them with knowledge the draft has not given them.`
+        : data.scope === "thread" && subject
+          ? `Summarise only this thread of the story: ${subject}. Follow it through the scenes given and stop where the draft stops. Ignore anything the scenes do that belongs to another thread.`
+          : null;
 
     let result: { body: string };
     try {
       result = await generateJson<{ body: string }>({
         system: SYNOPSIS_SYSTEM,
-        input: `${wanted}\n\nDraft, in reading order:\n\n${material}`,
+        input: `${wanted}${focus ? `\n\n${focus}` : ""}\n\nDraft, in reading order:\n\n${material}`,
         schemaName: "synopsis",
         schema: SYNOPSIS_SCHEMA,
       });

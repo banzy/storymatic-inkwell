@@ -158,6 +158,7 @@ import {
   listProjects,
   listRevisions,
   moveNode,
+  placeScene,
   renameNode,
   resetSampleProject,
   restoreRevision,
@@ -237,6 +238,7 @@ function Workspace() {
   const sceneDeletedFn = useServerFn(setSceneDeleted);
   const chapterDeletedFn = useServerFn(setChapterDeleted);
   const sceneMetaFn = useServerFn(updateSceneMeta);
+  const placeSceneFn = useServerFn(placeScene);
   const directionFn = useServerFn(saveDirection);
   const directionStatusFn = useServerFn(setDirectionStatus);
   const observationStatusFn = useServerFn(setObservationStatus);
@@ -669,6 +671,11 @@ function Workspace() {
 
   const synopsisTargets: SynopsisTarget[] = useMemo(() => {
     const chapters = outline.data?.chapters ?? [];
+    const scenes = outline.data?.scenes ?? [];
+    const people = (storyModel.data?.entities ?? []).filter(
+      (entity) => entity.kind === "character",
+    );
+    const threadRows = threads.data?.threads ?? [];
     return [
       { scope: "story" as const, targetId: null, label: "The whole story so far" },
       ...chapters.map((chapter) => ({
@@ -676,8 +683,23 @@ function Workspace() {
         targetId: chapter.id,
         label: chapter.title,
       })),
+      ...scenes.map((scene) => ({
+        scope: "scene" as const,
+        targetId: scene.id,
+        label: scene.title,
+      })),
+      ...people.map((person) => ({
+        scope: "character" as const,
+        targetId: person.id,
+        label: person.name,
+      })),
+      ...threadRows.map((thread) => ({
+        scope: "thread" as const,
+        targetId: thread.id,
+        label: thread.name,
+      })),
     ];
-  }, [outline.data]);
+  }, [outline.data, storyModel.data, threads.data]);
 
   const runWriteSynopsis = async (target: SynopsisTarget) => {
     const key = `${target.scope}:${target.targetId ?? ""}`;
@@ -1623,6 +1645,15 @@ function Workspace() {
                 await refreshOutline();
               })
             }
+            onDropCard={(sceneId, targetSceneId, before) => {
+              const title = sceneTitles[sceneId] ?? "that scene";
+              mutate.mutate(async () => {
+                await placeSceneFn({ data: { sceneId, targetSceneId, before } });
+                await refreshOutline();
+                // Dragging a card only changes the order; the writing is untouched.
+                await runMoveReview(sceneId, title);
+              });
+            }}
             onOpenEvidence={(sceneId, quote) => {
               setStoryOpen(false);
               void openEvidence(sceneId, quote);

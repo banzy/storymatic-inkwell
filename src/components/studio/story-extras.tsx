@@ -12,7 +12,25 @@ import type {
   SynopsisRow,
 } from "@/lib/storybrain.functions";
 
-export type SynopsisTarget = { scope: "story" | "chapter"; targetId: string | null; label: string };
+export type SynopsisScope = "story" | "chapter" | "scene" | "character" | "thread";
+
+export type SynopsisTarget = { scope: SynopsisScope; targetId: string | null; label: string };
+
+const SCOPE_LABEL: Record<SynopsisScope, string> = {
+  story: "The whole story",
+  chapter: "By chapter",
+  scene: "By scene",
+  character: "By person",
+  thread: "By thread",
+};
+
+const SCOPE_BLURB: Record<SynopsisScope, string> = {
+  story: "Everything the draft has reached so far.",
+  chapter: "One summary for each chapter.",
+  scene: "A line or two for each scene as it stands.",
+  character: "One person's part in the story, and where the draft leaves them.",
+  thread: "One thread followed through the scenes that carry it.",
+};
 
 const READING_LABEL = "Storymatic's reading — yours to confirm";
 
@@ -143,23 +161,50 @@ export function SynopsisView(props: {
   const { targets, synopses, busyTarget, onWrite, onSave } = props;
   const key = (scope: string, targetId: string | null) => `${scope}:${targetId ?? ""}`;
   const rows = new Map(synopses.map((row) => [key(row.scope, row.target_id), row]));
+  const levels = (["story", "chapter", "scene", "character", "thread"] as SynopsisScope[]).filter(
+    (scope) => targets.some((target) => target.scope === scope),
+  );
+  const [level, setLevel] = useState<SynopsisScope>(levels[0] ?? "story");
+  const shown = targets.filter((target) => target.scope === level);
 
   return (
     <div className="space-y-4">
       <p className="max-w-prose text-sm text-muted-foreground">
-        A summary that keeps up with the draft. Lock any wording you've settled on and Storymatic
-        will leave it exactly as you wrote it.
+        A summary that keeps up with the draft, at whatever level you need. Lock any wording you've
+        settled on and Storymatic will leave it exactly as you wrote it.
       </p>
-      {targets.map((target) => (
-        <SynopsisCard
-          key={key(target.scope, target.targetId)}
-          target={target}
-          row={rows.get(key(target.scope, target.targetId))}
-          busy={busyTarget === key(target.scope, target.targetId)}
-          onWrite={onWrite}
-          onSave={onSave}
-        />
-      ))}
+
+      <div className="flex flex-wrap gap-1" role="group" aria-label="Summary level">
+        {levels.map((scope) => (
+          <Button
+            key={scope}
+            size="sm"
+            variant={scope === level ? "secondary" : "ghost"}
+            aria-pressed={scope === level}
+            onClick={() => setLevel(scope)}
+          >
+            {SCOPE_LABEL[scope]}
+          </Button>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">{SCOPE_BLURB[level]}</p>
+
+      {shown.length === 0 ? (
+        <p className="max-w-prose text-sm text-muted-foreground">
+          Nothing to summarise at this level yet. It grows with the draft.
+        </p>
+      ) : (
+        shown.map((target) => (
+          <SynopsisCard
+            key={key(target.scope, target.targetId)}
+            target={target}
+            row={rows.get(key(target.scope, target.targetId))}
+            busy={busyTarget === key(target.scope, target.targetId)}
+            onWrite={onWrite}
+            onSave={onSave}
+          />
+        ))
+      )}
     </div>
   );
 }

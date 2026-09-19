@@ -41,14 +41,14 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
       (not in the draft yet, not in the plan, happens earlier than planned), "Compare
       with the draft" review whose readings stay unconfirmed until the author agrees.
       Verified in browser on the sample.
-- [x] Dynamic Synopsis (story + chapter, editable and lockable): written from the draft,
-      locked wording never overwritten, empty until the draft gives it something.
-      Verified in browser on the sample. Still open: act/scene/character/thread scopes.
+- [x] Dynamic Synopsis (story · chapter · scene · person · thread, editable and lockable):
+      level switcher; a person's summary draws only on scenes that carry them, a thread's only
+      on the scenes it is picked up in; locked wording never overwritten. Verified in browser.
 - [x] Story space (Scenes · Plot · Timeline): scene cards from the manuscript, author-
       editable, "Fill in the blanks" fills only empty fields; keyboard-reachable reorder
-      with consequence notes after a move (never a rewrite); plot threads with backing
-      passages; story-time timeline leaving untimed scenes unplaced. Verified in browser.
-      Still open there: pointer drag-and-drop for cards.
+      with consequence notes after a move (never a rewrite), plus pointer drag-and-drop of cards
+      (drop before/after another card, crossing chapters); plot threads with backing passages;
+      story-time timeline leaving untimed scenes unplaced. Verified in browser.
 - [x] Living characters — People view in the Story space: who they are, where they
       stand at a chosen point ("as of" any scene), what they know there grouped by
       knows/believes/suspects/has it wrong/doesn't know, their arc in story order,
