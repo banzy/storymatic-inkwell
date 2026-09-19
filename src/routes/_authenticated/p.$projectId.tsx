@@ -294,6 +294,11 @@ function Workspace() {
   const deleteThemeFn = useServerFn(deleteTheme);
   const readThemesFn = useServerFn(readThemes);
 
+  const questionsFn = useServerFn(getQuestions);
+  const saveQuestionFn = useServerFn(saveQuestion);
+  const deleteQuestionFn = useServerFn(deleteQuestion);
+  const readContradictionsFn = useServerFn(readContradictions);
+
   const threadsFn = useServerFn(getThreads);
   const saveThreadFn = useServerFn(saveThread);
   const judgeThreadFn = useServerFn(judgeThread);
