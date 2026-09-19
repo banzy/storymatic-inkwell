@@ -245,12 +245,18 @@ export const writeSynopsis = createServerFn({ method: "POST" })
         : data.scope === "story"
           ? "Write two to four short paragraphs."
           : "Write one short paragraph.";
+    const focus =
+      data.scope === "character" && subject
+        ? `Summarise only ${subject}'s part in the draft: what they do, what happens to them, and where the draft leaves them. Do not summarise the rest of the book, and do not credit them with knowledge the draft has not given them.`
+        : data.scope === "thread" && subject
+          ? `Summarise only this thread of the story: ${subject}. Follow it through the scenes given and stop where the draft stops. Ignore anything the scenes do that belongs to another thread.`
+          : null;
 
     let result: { body: string };
     try {
       result = await generateJson<{ body: string }>({
         system: SYNOPSIS_SYSTEM,
-        input: `${wanted}\n\nDraft, in reading order:\n\n${material}`,
+        input: `${wanted}${focus ? `\n\n${focus}` : ""}\n\nDraft, in reading order:\n\n${material}`,
         schemaName: "synopsis",
         schema: SYNOPSIS_SCHEMA,
       });
