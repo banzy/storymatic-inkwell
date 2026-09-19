@@ -46,9 +46,9 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
       on the scenes it is picked up in; locked wording never overwritten. Verified in browser.
 - [x] Story space (Scenes · Plot · Timeline): scene cards from the manuscript, author-
       editable, "Fill in the blanks" fills only empty fields; keyboard-reachable reorder
-      with consequence notes after a move (never a rewrite); plot threads with backing
-      passages; story-time timeline leaving untimed scenes unplaced. Verified in browser.
-      Still open there: pointer drag-and-drop for cards.
+      with consequence notes after a move (never a rewrite), plus pointer drag-and-drop of cards
+      (drop before/after another card, crossing chapters); plot threads with backing passages;
+      story-time timeline leaving untimed scenes unplaced. Verified in browser.
 - [x] Living characters — People view in the Story space: who they are, where they
       stand at a chosen point ("as of" any scene), what they know there grouped by
       knows/believes/suspects/has it wrong/doesn't know, their arc in story order,
