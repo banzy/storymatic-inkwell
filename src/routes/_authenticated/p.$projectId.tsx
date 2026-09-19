@@ -1856,6 +1856,55 @@ function Workspace() {
                     void openEvidence(sceneId, quote);
                   }}
                 />
+              ) : storyTab === "plot" ? (
+                <ThreadsView
+                  threads={threads.data?.threads ?? []}
+                  beats={threads.data?.beats ?? []}
+                  scenes={(outline.data?.scenes ?? []).map((scene) => ({
+                    id: scene.id,
+                    title: scene.title,
+                  }))}
+                  sceneTitles={new Map(Object.entries(sceneTitles))}
+                  loading={threads.isLoading}
+                  onSave={(draft: ThreadDraft) =>
+                    mutate.mutate(async () => {
+                      await saveThreadFn({ data: { projectId, ...draft } });
+                      await refreshThreads();
+                    })
+                  }
+                  onJudge={(id, confirmed) =>
+                    mutate.mutate(async () => {
+                      await judgeThreadFn({ data: { id, confirmed } });
+                      await refreshThreads();
+                    })
+                  }
+                  onJudgeBeat={(id, confirmed) =>
+                    mutate.mutate(async () => {
+                      await judgeThreadBeatFn({ data: { id, confirmed } });
+                      await refreshThreads();
+                    })
+                  }
+                  onStatus={(id, status) =>
+                    mutate.mutate(async () => {
+                      await threadStatusFn({ data: { id, status } });
+                      await refreshThreads();
+                    })
+                  }
+                  onDelete={(id) =>
+                    mutate.mutate(async () => {
+                      await deleteThreadFn({ data: { id } });
+                      await refreshThreads();
+                    })
+                  }
+                  onOpenScene={(sceneId) => {
+                    setStoryOpen(false);
+                    void goToScene(sceneId);
+                  }}
+                  onOpenEvidence={(sceneId, quote) => {
+                    setStoryOpen(false);
+                    void openEvidence(sceneId, quote);
+                  }}
+                />
               ) : storyTab === "promises" ? (
 
 
