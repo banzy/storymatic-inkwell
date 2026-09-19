@@ -36,6 +36,7 @@ const TAB_LABELS: Record<StorySpaceTab, string> = {
   world: "World",
   research: "Research",
   themes: "Themes",
+  questions: "Questions",
   discoveries: "Discoveries",
 
   possibilities: "Possibilities",
