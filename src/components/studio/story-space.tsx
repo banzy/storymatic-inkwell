@@ -113,9 +113,12 @@ function SceneCard(props: {
   onOpenScene: (sceneId: string) => void;
   onMoveScene: (sceneId: string, direction: "up" | "down") => void;
   onSaveCard: (sceneId: string, patch: CardPatch) => void;
+  onDropCard: (sceneId: string, targetSceneId: string, before: boolean) => void;
 }) {
-  const { scene, chapterTitle, first, last, onOpenScene, onMoveScene, onSaveCard } = props;
+  const { scene, chapterTitle, first, last, onOpenScene, onMoveScene, onSaveCard, onDropCard } =
+    props;
   const [editing, setEditing] = useState(false);
+  const [over, setOver] = useState<"before" | "after" | null>(null);
   const [summary, setSummary] = useState(scene.summary ?? "");
   const [pov, setPov] = useState(scene.pov ?? "");
   const [location, setLocation] = useState(scene.location ?? "");
