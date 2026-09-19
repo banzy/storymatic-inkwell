@@ -19,6 +19,7 @@ export type StorySpaceTab =
   | "world"
   | "research"
   | "themes"
+  | "questions"
   | "discoveries"
   | "possibilities";
 
