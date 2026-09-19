@@ -326,6 +326,7 @@ export function StorySpace(props: {
   onOpenScene: (sceneId: string) => void;
   onMoveScene: (sceneId: string, direction: "up" | "down") => void;
   onSaveCard: (sceneId: string, patch: CardPatch) => void;
+  onDropCard: (sceneId: string, targetSceneId: string, before: boolean) => void;
   onOpenEvidence: (sceneId: string, quote: string) => void;
   /** The Synopsis, Relationships and Discoveries bodies, composed by the workspace. */
   extraSlot?: ReactNode;
