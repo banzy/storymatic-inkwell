@@ -238,6 +238,7 @@ function Workspace() {
   const sceneDeletedFn = useServerFn(setSceneDeleted);
   const chapterDeletedFn = useServerFn(setChapterDeleted);
   const sceneMetaFn = useServerFn(updateSceneMeta);
+  const placeSceneFn = useServerFn(placeScene);
   const directionFn = useServerFn(saveDirection);
   const directionStatusFn = useServerFn(setDirectionStatus);
   const observationStatusFn = useServerFn(setObservationStatus);
