@@ -147,11 +147,7 @@ function SceneCard(props: {
         onDropCard(dragged, scene.id, side !== "after");
       }}
       className={`flex cursor-grab flex-col rounded-md border bg-card p-3 ${
-        over === "before"
-          ? "border-primary shadow-[inset_0_2px_0_0_var(--color-primary)]"
-          : over === "after"
-            ? "border-primary shadow-[inset_0_-2px_0_0_var(--color-primary)]"
-            : "border-border"
+        over ? "border-primary ring-1 ring-primary" : "border-border"
       }`}
     >
       <p className="text-xs text-muted-foreground">
