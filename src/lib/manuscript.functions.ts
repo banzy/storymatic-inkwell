@@ -526,6 +526,58 @@ export const moveNode = createServerFn({ method: "POST" })
     return { moved: true };
   });
 
+/**
+ * Puts one scene directly before or after another — what dragging a card on the
+ * corkboard does. The scene joins the target's chapter if it wasn't already in
+ * it; nothing in either scene's text is touched.
+ */
+export const placeScene = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ sceneId: uuid, targetSceneId: uuid, before: z.boolean() })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    if (data.sceneId === data.targetSceneId) return { moved: false as const };
+
+    const { data: target, error: targetError } = await supabase
+      .from("scenes")
+      .select("id, chapter_id, position")
+      .eq("id", data.targetSceneId)
+      .maybeSingle();
+    if (targetError) throw new Error(targetError.message);
+    if (!target) return { moved: false as const };
+
+    // The nearest sibling on the side the card was dropped, so we can land between them.
+    const siblings = supabase
+      .from("scenes")
+      .select("id, position")
+      .eq("chapter_id", target.chapter_id)
+      .is("deleted_at", null)
+      .neq("id", data.sceneId);
+    const { data: neighbour } = await (data.before
+      ? siblings.lt("position", target.position).order("position", { ascending: false })
+      : siblings.gt("position", target.position).order("position", { ascending: true })
+    )
+      .limit(1)
+      .maybeSingle();
+
+    const position = neighbour
+      ? (target.position + neighbour.position) / 2
+      : data.before
+        ? target.position - 1
+        : target.position + 1;
+
+    const { error } = await supabase
+      .from("scenes")
+      .update({ chapter_id: target.chapter_id, position })
+      .eq("id", data.sceneId);
+    if (error) throw new Error(error.message);
+    return { moved: true as const };
+  });
+
 export const setSceneDeleted = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
