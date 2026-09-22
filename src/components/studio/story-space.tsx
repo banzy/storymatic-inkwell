@@ -332,6 +332,8 @@ export function StorySpace(props: {
   extraSlot?: ReactNode;
   /** The action button for whichever tab is open (other than Scenes). */
   headerAction?: ReactNode;
+  /** True while the draft has no words yet: every view waits rather than guessing. */
+  emptyDraft?: boolean;
 }) {
   const {
     tab,
