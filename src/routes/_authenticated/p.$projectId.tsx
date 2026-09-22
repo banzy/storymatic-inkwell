@@ -1663,6 +1663,7 @@ function Workspace() {
               setStoryOpen(false);
               void openEvidence(sceneId, quote);
             }}
+            emptyDraft={!hasWriting}
             headerAction={
               storyTab === "people" ? (
                 <Button
