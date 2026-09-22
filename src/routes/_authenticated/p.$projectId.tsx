@@ -1668,7 +1668,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runReadEveryScene()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1678,7 +1678,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runReadRelationships()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1688,7 +1688,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runReadWorld()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1698,7 +1698,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runReadThreads()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1709,7 +1709,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runReadPromises()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1719,7 +1719,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runReadThemes()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1729,7 +1729,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runCompareScenes()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1741,7 +1741,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runFindDiscoveries()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1751,7 +1751,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runReadChronology()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1761,7 +1761,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runExploreScene()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
