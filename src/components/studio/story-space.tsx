@@ -419,6 +419,13 @@ export function StorySpace(props: {
         ))}
       </nav>
 
+      {emptyDraft && (
+        <p className="border-b border-border px-6 py-2 text-xs text-muted-foreground">
+          Nothing written yet. Start a scene, or plan here first — these pages fill in as the draft
+          does, and nothing is guessed before there are words.
+        </p>
+      )}
+
       {(message || moveNotes) && (
         <div className="border-b border-border px-6 py-2 text-xs text-muted-foreground">
           {message && <p>{message}</p>}
