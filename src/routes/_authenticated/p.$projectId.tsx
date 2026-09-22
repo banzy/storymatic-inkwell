@@ -387,6 +387,11 @@ function Workspace() {
 
   const refreshOutline = () => queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
 
+  // A brand-new story starts with nothing: there is nothing to read until words exist.
+  const hasWriting = (outline.data?.scenes ?? []).some((scene) => (scene.word_count ?? 0) > 0);
+  const readingBlocked = extrasBusy || !hasWriting;
+  const readingHint = hasWriting ? undefined : "There's nothing written to read yet.";
+
   // The synopsis, relationships and discoveries all grow with the draft, so they
   // are read fresh whenever the Story views are opened.
   const extras = useQuery({
