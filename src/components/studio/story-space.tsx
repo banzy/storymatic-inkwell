@@ -357,6 +357,7 @@ export function StorySpace(props: {
     onOpenEvidence,
     extraSlot,
     headerAction,
+    emptyDraft = false,
   } = props;
 
   const chapterById = new Map(chapters.map((chapter) => [chapter.id, chapter]));
