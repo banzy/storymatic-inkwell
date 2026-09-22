@@ -387,7 +387,13 @@ export function StorySpace(props: {
           <p className="text-xs text-muted-foreground">{TAB_BLURBS[tab]}</p>
         </div>
         {tab === "scenes" ? (
-          <Button variant="outline" size="sm" disabled={filling} onClick={onFillCards}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={filling || emptyDraft}
+            title={emptyDraft ? "There's nothing written to read yet." : undefined}
+            onClick={onFillCards}
+          >
             {filling && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
             {filling ? "Reading…" : "Fill in the blanks"}
           </Button>
