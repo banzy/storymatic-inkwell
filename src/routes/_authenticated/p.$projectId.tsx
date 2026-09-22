@@ -387,6 +387,11 @@ function Workspace() {
 
   const refreshOutline = () => queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
 
+  // A brand-new story starts with nothing: there is nothing to read until words exist.
+  const hasWriting = (outline.data?.scenes ?? []).some((scene) => (scene.word_count ?? 0) > 0);
+  const readingBlocked = extrasBusy || !hasWriting;
+  const readingHint = hasWriting ? undefined : "There's nothing written to read yet.";
+
   // The synopsis, relationships and discoveries all grow with the draft, so they
   // are read fresh whenever the Story views are opened.
   const extras = useQuery({
@@ -1658,12 +1663,13 @@ function Workspace() {
               setStoryOpen(false);
               void openEvidence(sceneId, quote);
             }}
+            emptyDraft={!hasWriting}
             headerAction={
               storyTab === "people" ? (
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runReadEveryScene()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1673,7 +1679,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runReadRelationships()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1683,7 +1689,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runReadWorld()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1693,7 +1699,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runReadThreads()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1704,7 +1710,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runReadPromises()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1714,7 +1720,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runReadThemes()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1724,7 +1730,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runCompareScenes()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1736,7 +1742,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runFindDiscoveries()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1746,7 +1752,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runReadChronology()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
@@ -1756,7 +1762,7 @@ function Workspace() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={extrasBusy}
+                  disabled={readingBlocked} title={readingHint}
                   onClick={() => void runExploreScene()}
                 >
                   {extrasBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}

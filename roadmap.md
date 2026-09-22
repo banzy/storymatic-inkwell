@@ -88,7 +88,11 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
       premise, concrete changes, consequences (clear/possible), author-noted or explored, and
       exploring / taking up / set aside. Nothing is written to the draft. Verified in browser.
 
-- [ ] Writer types: no setup wizard; new project can start with nothing.
+- [x] Writer types: no setup wizard; a new project starts with one empty scene and nothing else.
+      Every Story view opens calmly on a blank draft; reading actions wait until words exist
+      ("Nothing written yet… nothing is guessed before there are words"). Planner-first use works
+      via planned outline steps, threads, promises, themes and possibilities you note yourself.
+      Verified in browser on a brand-new project (all 14 views, no errors).
 
 ## Blocked / waiting
 - Real sign-in restoration awaits user's go-ahead.

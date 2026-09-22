@@ -332,6 +332,8 @@ export function StorySpace(props: {
   extraSlot?: ReactNode;
   /** The action button for whichever tab is open (other than Scenes). */
   headerAction?: ReactNode;
+  /** True while the draft has no words yet: every view waits rather than guessing. */
+  emptyDraft?: boolean;
 }) {
   const {
     tab,
@@ -355,6 +357,7 @@ export function StorySpace(props: {
     onOpenEvidence,
     extraSlot,
     headerAction,
+    emptyDraft = false,
   } = props;
 
   const chapterById = new Map(chapters.map((chapter) => [chapter.id, chapter]));
@@ -384,7 +387,13 @@ export function StorySpace(props: {
           <p className="text-xs text-muted-foreground">{TAB_BLURBS[tab]}</p>
         </div>
         {tab === "scenes" ? (
-          <Button variant="outline" size="sm" disabled={filling} onClick={onFillCards}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={filling || emptyDraft}
+            title={emptyDraft ? "There's nothing written to read yet." : undefined}
+            onClick={onFillCards}
+          >
             {filling && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
             {filling ? "Reading…" : "Fill in the blanks"}
           </Button>
@@ -409,6 +418,13 @@ export function StorySpace(props: {
           </Button>
         ))}
       </nav>
+
+      {emptyDraft && (
+        <p className="border-b border-border px-6 py-2 text-xs text-muted-foreground">
+          Nothing written yet. Start a scene, or plan here first — these pages fill in as the draft
+          does, and nothing is guessed before there are words.
+        </p>
+      )}
 
       {(message || moveNotes) && (
         <div className="border-b border-border px-6 py-2 text-xs text-muted-foreground">
