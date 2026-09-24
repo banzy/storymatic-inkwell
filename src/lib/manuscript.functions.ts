@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireLocalDatabase } from "@/integrations/mongodb/middleware";
 import { z } from "zod";
 import {
   SAMPLE_CHAPTER_TITLE,
@@ -20,9 +20,9 @@ const asJson = (value: unknown) => value as never;
 /* ------------------------------------------------------------------ projects */
 
 export const listProjects = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+    const { data, error } = await context.db
       .from("projects")
       .select("id, title, genre, is_sample, updated_at")
       .is("deleted_at", null)
@@ -32,7 +32,7 @@ export const listProjects = createServerFn({ method: "GET" })
   });
 
 export const createProject = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -43,8 +43,8 @@ export const createProject = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { data: project, error } = await supabase
+    const { db, userId } = context;
+    const { data: project, error } = await db
       .from("projects")
       .insert({
         owner_id: userId,
@@ -56,14 +56,14 @@ export const createProject = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    const { data: chapter, error: chapterError } = await supabase
+    const { data: chapter, error: chapterError } = await db
       .from("chapters")
       .insert({ project_id: project.id, title: "Chapter One", position: 1 })
       .select("id")
       .single();
     if (chapterError) throw new Error(chapterError.message);
 
-    const { error: sceneError } = await supabase.from("scenes").insert({
+    const { error: sceneError } = await db.from("scenes").insert({
       project_id: project.id,
       chapter_id: chapter.id,
       title: "Scene One",
@@ -76,10 +76,10 @@ export const createProject = createServerFn({ method: "POST" })
   });
 
 export const deleteProject = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("projects")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", data.projectId);
@@ -89,8 +89,8 @@ export const deleteProject = createServerFn({ method: "POST" })
 
 /* ------------------------------------------------------------- sample project */
 
-async function buildSample(supabase: SupabaseLike, userId: string) {
-  const { data: project, error } = await supabase
+async function buildSample(db: MongoLike, userId: string) {
+  const { data: project, error } = await db
     .from("projects")
     .insert({
       owner_id: userId,
@@ -103,7 +103,7 @@ async function buildSample(supabase: SupabaseLike, userId: string) {
     .single();
   if (error) throw new Error(error.message);
 
-  const { data: chapter, error: chapterError } = await supabase
+  const { data: chapter, error: chapterError } = await db
     .from("chapters")
     .insert({ project_id: project.id, title: SAMPLE_CHAPTER_TITLE, position: 1 })
     .select("id")
@@ -115,7 +115,7 @@ async function buildSample(supabase: SupabaseLike, userId: string) {
   for (const scene of SAMPLE_SCENES) {
     const doc = textToDoc(scene.body);
     const plain = docToPlainText(doc);
-    const { data: row, error: sceneError } = await supabase
+    const { data: row, error: sceneError } = await db
       .from("scenes")
       .insert({
         project_id: project.id,
@@ -135,7 +135,7 @@ async function buildSample(supabase: SupabaseLike, userId: string) {
     if (sceneError) throw new Error(sceneError.message);
     sceneIds[scene.key] = row.id;
 
-    await supabase.from("scene_revisions").insert({
+    await db.from("scene_revisions").insert({
       project_id: project.id,
       scene_id: row.id,
       content: asJson(doc),
@@ -147,7 +147,7 @@ async function buildSample(supabase: SupabaseLike, userId: string) {
   }
 
   for (const direction of SAMPLE_DIRECTIONS) {
-    await supabase.from("author_directions").insert({
+    await db.from("author_directions").insert({
       project_id: project.id,
       scope: direction.scope,
       chapter_id: direction.scope === "chapter" ? chapter.id : null,
@@ -159,7 +159,7 @@ async function buildSample(supabase: SupabaseLike, userId: string) {
   }
 
   for (const observation of SAMPLE_OBSERVATIONS) {
-    await supabase.from("observations").insert({
+    await db.from("observations").insert({
       project_id: project.id,
       scene_id: sceneIds[observation.sceneKey] ?? null,
       title: observation.title,
@@ -178,39 +178,39 @@ async function buildSample(supabase: SupabaseLike, userId: string) {
 }
 
 export const openSampleProject = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    const { data: existing } = await supabase
+    const { db, userId } = context;
+    const { data: existing } = await db
       .from("projects")
       .select("id")
       .eq("is_sample", true)
       .is("deleted_at", null)
       .maybeSingle();
     if (existing) return { projectId: existing.id, created: false };
-    const projectId = await buildSample(supabase, userId);
+    const projectId = await buildSample(db, userId);
     return { projectId, created: true };
   });
 
 export const resetSampleProject = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context;
+    const { db, userId } = context;
     // Only sample projects are touched; other projects are never read or changed.
-    const { error } = await supabase.from("projects").delete().eq("is_sample", true);
+    const { error } = await db.from("projects").delete().eq("is_sample", true);
     if (error) throw new Error(error.message);
-    const projectId = await buildSample(supabase, userId);
+    const projectId = await buildSample(db, userId);
     return { projectId };
   });
 
 /* ----------------------------------------------------------------- workspace */
 
 export const getWorkspace = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: project, error } = await supabase
+    const { db } = context;
+    const { data: project, error } = await db
       .from("projects")
       .select("id, title, genre, creative_direction, is_sample")
       .eq("id", data.projectId)
@@ -220,23 +220,23 @@ export const getWorkspace = createServerFn({ method: "GET" })
     if (!project) throw new Error("Project not found");
 
     const [chapters, scenes, directions, observations] = await Promise.all([
-      supabase
+      db
         .from("chapters")
         .select("id, title, position")
         .eq("project_id", project.id)
         .is("deleted_at", null)
         .order("position"),
-      supabase
+      db
         .from("scenes")
         .select("id, chapter_id, title, position, word_count, updated_at, deleted_at")
         .eq("project_id", project.id)
         .order("position"),
-      supabase
+      db
         .from("author_directions")
         .select("id, scope, scene_id, chapter_id, subject, body, kind, status, is_inferred, confirmed")
         .eq("project_id", project.id)
         .order("created_at"),
-      supabase
+      db
         .from("observations")
         .select("id, scene_id, title, body, why_it_matters, uncertainty, status, origin, evidence")
         .eq("project_id", project.id)
@@ -257,10 +257,10 @@ export const getWorkspace = createServerFn({ method: "GET" })
   });
 
 export const getScene = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ sceneId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: scene, error } = await context.supabase
+    const { data: scene, error } = await context.db
       .from("scenes")
       .select(
         "id, project_id, chapter_id, title, summary, pov, location, story_time, content, plain_text, word_count, updated_at, deleted_at",
@@ -273,7 +273,7 @@ export const getScene = createServerFn({ method: "GET" })
   });
 
 export const saveScene = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -285,8 +285,8 @@ export const saveScene = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: scene, error: readError } = await supabase
+    const { db } = context;
+    const { data: scene, error: readError } = await db
       .from("scenes")
       .select("id, project_id, plain_text")
       .eq("id", data.sceneId)
@@ -294,7 +294,7 @@ export const saveScene = createServerFn({ method: "POST" })
     if (readError) throw new Error(readError.message);
     if (!scene) throw new Error("Scene not found");
 
-    const { error } = await supabase
+    const { error } = await db
       .from("scenes")
       .update({
         content: asJson(data.content),
@@ -306,7 +306,7 @@ export const saveScene = createServerFn({ method: "POST" })
 
     let revisionId: string | null = null;
     if (scene.plain_text !== data.plainText) {
-      const { data: last } = await supabase
+      const { data: last } = await db
         .from("scene_revisions")
         .select("id, plain_text, created_at")
         .eq("scene_id", data.sceneId)
@@ -316,7 +316,7 @@ export const saveScene = createServerFn({ method: "POST" })
       const lastAge = last ? Date.now() - new Date(last.created_at).getTime() : Infinity;
       // One revision per scene per 90s of active writing keeps history readable.
       if (!last || (last.plain_text !== data.plainText && lastAge > 90_000)) {
-        const { data: revision, error: revisionError } = await supabase
+        const { data: revision, error: revisionError } = await db
           .from("scene_revisions")
           .insert({
             project_id: scene.project_id,
@@ -337,7 +337,7 @@ export const saveScene = createServerFn({ method: "POST" })
     // as needing another look — never silently kept, never silently deleted.
     let needsReview = 0;
     if (scene.plain_text !== data.plainText) {
-      const { data: claims } = await supabase
+      const { data: claims } = await db
         .from("story_claims")
         .select("id, evidence")
         .eq("scene_id", data.sceneId)
@@ -353,7 +353,7 @@ export const saveScene = createServerFn({ method: "POST" })
         if (!quotes.every((quote) => haystack.includes(flattenText(quote)))) stale.push(claim.id);
       }
       if (stale.length > 0) {
-        await supabase.from("story_claims").update({ validity: "needs_review" }).in("id", stale);
+        await db.from("story_claims").update({ validity: "needs_review" }).in("id", stale);
         needsReview = stale.length;
       }
     }
@@ -373,20 +373,20 @@ const flattenText = (text: string) =>
 /* --------------------------------------------------------- chapters & scenes */
 
 export const createChapter = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z.object({ projectId: uuid, title: z.string().trim().max(160).optional() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: last } = await supabase
+    const { db } = context;
+    const { data: last } = await db
       .from("chapters")
       .select("position")
       .eq("project_id", data.projectId)
       .order("position", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const { data: chapter, error } = await supabase
+    const { data: chapter, error } = await db
       .from("chapters")
       .insert({
         project_id: data.projectId,
@@ -400,22 +400,22 @@ export const createChapter = createServerFn({ method: "POST" })
   });
 
 export const createScene = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({ projectId: uuid, chapterId: uuid, title: z.string().trim().max(160).optional() })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: last } = await supabase
+    const { db } = context;
+    const { data: last } = await db
       .from("scenes")
       .select("position")
       .eq("chapter_id", data.chapterId)
       .order("position", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const { data: scene, error } = await supabase
+    const { data: scene, error } = await db
       .from("scenes")
       .insert({
         project_id: data.projectId,
@@ -431,7 +431,7 @@ export const createScene = createServerFn({ method: "POST" })
   });
 
 export const renameNode = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -444,14 +444,14 @@ export const renameNode = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { error } =
       data.kind === "chapter"
-        ? await context.supabase.from("chapters").update({ title: data.title }).eq("id", data.id)
-        : await context.supabase.from("scenes").update({ title: data.title }).eq("id", data.id);
+        ? await context.db.from("chapters").update({ title: data.title }).eq("id", data.id)
+        : await context.db.from("scenes").update({ title: data.title }).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 export const moveNode = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -462,18 +462,18 @@ export const moveNode = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { db } = context;
 
     const readCurrent = async () => {
       if (data.kind === "chapter") {
-        const { data: row } = await supabase
+        const { data: row } = await db
           .from("chapters")
           .select("id, position, project_id")
           .eq("id", data.id)
           .maybeSingle();
         return row ? { position: row.position, scope: row.project_id } : null;
       }
-      const { data: row } = await supabase
+      const { data: row } = await db
         .from("scenes")
         .select("id, position, chapter_id")
         .eq("id", data.id)
@@ -487,7 +487,7 @@ export const moveNode = createServerFn({ method: "POST" })
     const neighbour = await (async () => {
       const ascending = data.direction === "down";
       if (data.kind === "chapter") {
-        const query = supabase
+        const query = db
           .from("chapters")
           .select("id, position")
           .eq("project_id", current.scope)
@@ -500,7 +500,7 @@ export const moveNode = createServerFn({ method: "POST" })
           .maybeSingle();
         return row;
       }
-      const query = supabase
+      const query = db
         .from("scenes")
         .select("id, position")
         .eq("chapter_id", current.scope)
@@ -517,11 +517,11 @@ export const moveNode = createServerFn({ method: "POST" })
     if (!neighbour) return { moved: false };
 
     if (data.kind === "chapter") {
-      await supabase.from("chapters").update({ position: current.position }).eq("id", neighbour.id);
-      await supabase.from("chapters").update({ position: neighbour.position }).eq("id", data.id);
+      await db.from("chapters").update({ position: current.position }).eq("id", neighbour.id);
+      await db.from("chapters").update({ position: neighbour.position }).eq("id", data.id);
     } else {
-      await supabase.from("scenes").update({ position: current.position }).eq("id", neighbour.id);
-      await supabase.from("scenes").update({ position: neighbour.position }).eq("id", data.id);
+      await db.from("scenes").update({ position: current.position }).eq("id", neighbour.id);
+      await db.from("scenes").update({ position: neighbour.position }).eq("id", data.id);
     }
     return { moved: true };
   });
@@ -532,17 +532,17 @@ export const moveNode = createServerFn({ method: "POST" })
  * it; nothing in either scene's text is touched.
  */
 export const placeScene = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({ sceneId: uuid, targetSceneId: uuid, before: z.boolean() })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { db } = context;
     if (data.sceneId === data.targetSceneId) return { moved: false as const };
 
-    const { data: target, error: targetError } = await supabase
+    const { data: target, error: targetError } = await db
       .from("scenes")
       .select("id, chapter_id, position")
       .eq("id", data.targetSceneId)
@@ -551,7 +551,7 @@ export const placeScene = createServerFn({ method: "POST" })
     if (!target) return { moved: false as const };
 
     // The nearest sibling on the side the card was dropped, so we can land between them.
-    const siblings = supabase
+    const siblings = db
       .from("scenes")
       .select("id, position")
       .eq("chapter_id", target.chapter_id)
@@ -570,7 +570,7 @@ export const placeScene = createServerFn({ method: "POST" })
         ? target.position - 1
         : target.position + 1;
 
-    const { error } = await supabase
+    const { error } = await db
       .from("scenes")
       .update({ chapter_id: target.chapter_id, position })
       .eq("id", data.sceneId);
@@ -579,12 +579,12 @@ export const placeScene = createServerFn({ method: "POST" })
   });
 
 export const setSceneDeleted = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z.object({ sceneId: uuid, deleted: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("scenes")
       .update({ deleted_at: data.deleted ? new Date().toISOString() : null })
       .eq("id", data.sceneId);
@@ -593,18 +593,18 @@ export const setSceneDeleted = createServerFn({ method: "POST" })
   });
 
 export const setChapterDeleted = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z.object({ chapterId: uuid, deleted: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const stamp = data.deleted ? new Date().toISOString() : null;
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("chapters")
       .update({ deleted_at: stamp })
       .eq("id", data.chapterId);
     if (error) throw new Error(error.message);
-    await context.supabase
+    await context.db
       .from("scenes")
       .update({ deleted_at: stamp })
       .eq("chapter_id", data.chapterId);
@@ -612,7 +612,7 @@ export const setChapterDeleted = createServerFn({ method: "POST" })
   });
 
 export const updateSceneMeta = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -625,7 +625,7 @@ export const updateSceneMeta = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("scenes")
       .update({
         summary: data.summary,
@@ -641,10 +641,10 @@ export const updateSceneMeta = createServerFn({ method: "POST" })
 /* ----------------------------------------------------------------- revisions */
 
 export const listRevisions = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ sceneId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await context.db
       .from("scene_revisions")
       .select("id, created_at, word_count, source, label, plain_text")
       .eq("scene_id", data.sceneId)
@@ -655,11 +655,11 @@ export const listRevisions = createServerFn({ method: "GET" })
   });
 
 export const restoreRevision = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ revisionId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: revision, error } = await supabase
+    const { db } = context;
+    const { data: revision, error } = await db
       .from("scene_revisions")
       .select("id, project_id, scene_id, content, plain_text, word_count")
       .eq("id", data.revisionId)
@@ -667,7 +667,7 @@ export const restoreRevision = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!revision) throw new Error("Revision not found");
 
-    const { data: scene } = await supabase
+    const { data: scene } = await db
       .from("scenes")
       .select("content, plain_text, word_count")
       .eq("id", revision.scene_id)
@@ -675,7 +675,7 @@ export const restoreRevision = createServerFn({ method: "POST" })
 
     // Keep the pre-restore text recoverable.
     if (scene && scene.plain_text !== revision.plain_text) {
-      await supabase.from("scene_revisions").insert({
+      await db.from("scene_revisions").insert({
         project_id: revision.project_id,
         scene_id: revision.scene_id,
         content: asJson(scene.content),
@@ -686,7 +686,7 @@ export const restoreRevision = createServerFn({ method: "POST" })
       });
     }
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await db
       .from("scenes")
       .update({
         content: asJson(revision.content),
@@ -702,7 +702,7 @@ export const restoreRevision = createServerFn({ method: "POST" })
 /* -------------------------------------------------------------------- import */
 
 export const importManuscript = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -713,8 +713,8 @@ export const importManuscript = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: last } = await supabase
+    const { db } = context;
+    const { data: last } = await db
       .from("chapters")
       .select("position")
       .eq("project_id", data.projectId)
@@ -722,7 +722,7 @@ export const importManuscript = createServerFn({ method: "POST" })
       .limit(1)
       .maybeSingle();
 
-    const { data: chapter, error } = await supabase
+    const { data: chapter, error } = await db
       .from("chapters")
       .insert({
         project_id: data.projectId,
@@ -739,7 +739,7 @@ export const importManuscript = createServerFn({ method: "POST" })
     for (const part of parts) {
       const doc = textToDoc(part.body);
       const plain = docToPlainText(doc);
-      const { data: scene, error: sceneError } = await supabase
+      const { data: scene, error: sceneError } = await db
         .from("scenes")
         .insert({
           project_id: data.projectId,
@@ -754,7 +754,7 @@ export const importManuscript = createServerFn({ method: "POST" })
         .single();
       if (sceneError) throw new Error(sceneError.message);
       if (!firstSceneId) firstSceneId = scene.id;
-      await supabase.from("scene_revisions").insert({
+      await db.from("scene_revisions").insert({
         project_id: data.projectId,
         scene_id: scene.id,
         content: asJson(doc),
@@ -771,7 +771,7 @@ export const importManuscript = createServerFn({ method: "POST" })
 /* ----------------------------------------------------------------- direction */
 
 export const saveDirection = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -788,7 +788,7 @@ export const saveDirection = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { db } = context;
     const row = {
       project_id: data.projectId,
       scope: data.scope,
@@ -802,11 +802,11 @@ export const saveDirection = createServerFn({ method: "POST" })
       confirmed: true,
     };
     if (data.id) {
-      const { error } = await supabase.from("author_directions").update(row).eq("id", data.id);
+      const { error } = await db.from("author_directions").update(row).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
-    const { data: created, error } = await supabase
+    const { data: created, error } = await db
       .from("author_directions")
       .insert(row)
       .select("id")
@@ -816,12 +816,12 @@ export const saveDirection = createServerFn({ method: "POST" })
   });
 
 export const setDirectionStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z.object({ id: uuid, status: z.enum(["active", "retired"]) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("author_directions")
       .update({ status: data.status })
       .eq("id", data.id);
@@ -830,14 +830,14 @@ export const setDirectionStatus = createServerFn({ method: "POST" })
   });
 
 export const setObservationStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({ id: uuid, status: z.enum(["open", "intentional", "dismissed"]) })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("observations")
       .update({ status: data.status })
       .eq("id", data.id);
@@ -846,6 +846,6 @@ export const setObservationStatus = createServerFn({ method: "POST" })
   });
 
 /** Minimal structural type so the sample builder can accept the request client. */
-type SupabaseLike = {
+type MongoLike = {
   from: (table: string) => any;
 };

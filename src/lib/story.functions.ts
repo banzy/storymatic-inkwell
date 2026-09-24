@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireLocalDatabase } from "@/integrations/mongodb/middleware";
 import { AiUnavailableError, generateJson } from "./ai.server";
 
 const uuid = z.string().uuid();
@@ -44,17 +44,17 @@ const SELECT_CLAIMS =
 
 /** Everything the Story and Characters views read. Ownership is enforced by RLS. */
 export const getStoryModel = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
     const [entities, claims] = await Promise.all([
-      context.supabase
+      context.db
         .from("story_entities")
         .select(SELECT_ENTITIES)
         .eq("project_id", data.projectId)
         .order("kind")
         .order("name"),
-      context.supabase
+      context.db
         .from("story_claims")
         .select(SELECT_CLAIMS)
         .eq("project_id", data.projectId)
@@ -159,13 +159,13 @@ const normalise = (text: string) => text.replace(/[\u2018\u2019]/g, "'").replace
  * derived claims. Nothing else in the story model is touched.
  */
 export const analyseScene = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z.object({ projectId: uuid, sceneId: uuid }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: scene, error } = await supabase
+    const { db } = context;
+    const { data: scene, error } = await db
       .from("scenes")
       .select("id, project_id, title, position, plain_text")
       .eq("id", data.sceneId)
@@ -182,7 +182,7 @@ export const analyseScene = createServerFn({ method: "POST" })
       };
     }
 
-    const { data: revision } = await supabase
+    const { data: revision } = await db
       .from("scene_revisions")
       .select("id")
       .eq("scene_id", scene.id)
@@ -211,7 +211,7 @@ export const analyseScene = createServerFn({ method: "POST" })
     const haystack = normalise(sceneText);
 
     // Existing entities, so names are reused rather than duplicated.
-    const { data: existing } = await supabase
+    const { data: existing } = await db
       .from("story_entities")
       .select("id, kind, name")
       .eq("project_id", data.projectId);
@@ -224,13 +224,13 @@ export const analyseScene = createServerFn({ method: "POST" })
       const existingId = entityIds.get(key(entity.kind, entity.name));
       if (existingId) {
         // Author edits are never overwritten by a later reading of the manuscript.
-        const { data: current } = await supabase
+        const { data: current } = await db
           .from("story_entities")
           .select("author_confirmed, identity, current_state")
           .eq("id", existingId)
           .maybeSingle();
         if (current && !current.author_confirmed) {
-          await supabase
+          await db
             .from("story_entities")
             .update({
               identity: entity.identity ?? current.identity,
@@ -240,7 +240,7 @@ export const analyseScene = createServerFn({ method: "POST" })
         }
         continue;
       }
-      const { data: inserted } = await supabase
+      const { data: inserted } = await db
         .from("story_entities")
         .insert({
           project_id: data.projectId,
@@ -257,7 +257,7 @@ export const analyseScene = createServerFn({ method: "POST" })
     }
 
     // Only claims derived from this scene are replaced; confirmed claims are kept.
-    await supabase
+    await db
       .from("story_claims")
       .delete()
       .eq("scene_id", scene.id)
@@ -279,7 +279,7 @@ export const analyseScene = createServerFn({ method: "POST" })
         entityIds.get(key("faction", claim.subject)) ??
         entityIds.get(key("thread", claim.subject)) ??
         null;
-      const { error: insertError } = await supabase.from("story_claims").insert({
+      const { error: insertError } = await db.from("story_claims").insert({
         project_id: data.projectId,
         entity_id: entityId,
         scene_id: scene.id,
@@ -303,7 +303,7 @@ export const analyseScene = createServerFn({ method: "POST" })
 /* ---------------------------------------------------------------- judgements */
 
 export const setClaimJudgement = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({ id: uuid, action: z.enum(["confirm", "reject", "reopen", "review"]) })
@@ -318,13 +318,13 @@ export const setClaimJudgement = createServerFn({ method: "POST" })
           : data.action === "review"
             ? { validity: "needs_review" }
             : { author_confirmed: false, truth_type: "inferred", validity: "current" };
-    const { error } = await context.supabase.from("story_claims").update(patch).eq("id", data.id);
+    const { error } = await context.db.from("story_claims").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 export const saveEntity = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -336,7 +336,7 @@ export const saveEntity = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("story_entities")
       .update({
         identity: data.identity,

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireLocalDatabase } from "@/integrations/mongodb/middleware";
 import { AiUnavailableError, generateJson } from "./ai.server";
 
 const uuid = z.string().uuid();
@@ -91,11 +91,11 @@ type WorldResult = {
  * untouched. Every rule must quote a real passage; unbacked readings are dropped.
  */
 export const readWorld = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: sceneRows, error: sceneError } = await supabase
+    const { db } = context;
+    const { data: sceneRows, error: sceneError } = await db
       .from("scenes")
       .select("id, title, position, plain_text")
       .eq("project_id", data.projectId)
@@ -148,7 +148,7 @@ export const readWorld = createServerFn({ method: "POST" })
       };
     }
 
-    const { data: existing } = await supabase
+    const { data: existing } = await db
       .from("story_entities")
       .select("id, kind, name, author_confirmed, identity, current_state")
       .eq("project_id", data.projectId);
@@ -165,7 +165,7 @@ export const readWorld = createServerFn({ method: "POST" })
         const current = byId.get(id);
         // Author wording always wins.
         if (current && !current.author_confirmed) {
-          await supabase
+          await db
             .from("story_entities")
             .update({
               identity: place.identity ?? current.identity,
@@ -175,7 +175,7 @@ export const readWorld = createServerFn({ method: "POST" })
         }
         continue;
       }
-      const { data: inserted } = await supabase
+      const { data: inserted } = await db
         .from("story_entities")
         .insert({
           project_id: data.projectId,
@@ -194,7 +194,7 @@ export const readWorld = createServerFn({ method: "POST" })
     }
 
     // Only readings the author hasn't taken a view on are replaced.
-    await supabase
+    await db
       .from("story_claims")
       .delete()
       .eq("project_id", data.projectId)
@@ -228,7 +228,7 @@ export const readWorld = createServerFn({ method: "POST" })
         entityIds.get(key("object", rule.subject)) ??
         entityIds.get(key("faction", rule.subject)) ??
         null;
-      const { error } = await supabase.from("story_claims").insert({
+      const { error } = await db.from("story_claims").insert({
         project_id: data.projectId,
         entity_id: entityId,
         scene_id: hit.scene.id,

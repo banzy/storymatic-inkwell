@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireLocalDatabase } from "@/integrations/mongodb/middleware";
 import { AiUnavailableError, generateJson } from "./ai.server";
 
 const uuid = z.string().uuid();
@@ -54,7 +54,7 @@ type SceneRow = {
   plain_text: string;
 };
 
-type Ctx = { supabase: { from: (table: string) => any } };
+type Ctx = { db: { from: (table: string) => any } };
 
 async function loadContext(
   context: Ctx,
@@ -69,24 +69,24 @@ async function loadContext(
   directions: { body: string; kind: string; scene_id: string | null; chapter_id: string | null }[];
 }> {
   const [project, chapters, scenes, directions] = await Promise.all([
-    context.supabase
+    context.db
       .from("projects")
       .select("title, genre, creative_direction")
       .eq("id", projectId)
       .single(),
-    context.supabase
+    context.db
       .from("chapters")
       .select("id, title, position")
       .eq("project_id", projectId)
       .is("deleted_at", null)
       .order("position"),
-    context.supabase
+    context.db
       .from("scenes")
       .select("id, title, position, chapter_id, plain_text")
       .eq("project_id", projectId)
       .is("deleted_at", null)
       .order("position"),
-    context.supabase
+    context.db
       .from("author_directions")
       .select("body, kind, scene_id, chapter_id")
       .eq("project_id", projectId)
@@ -164,7 +164,7 @@ const PROPOSAL_SCHEMA = {
 };
 
 export const proposePassageEdit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -260,7 +260,7 @@ const ASK_SCHEMA = {
 };
 
 export const askStorymatic = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({

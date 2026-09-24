@@ -2,9 +2,8 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, FilePlus2, Import, Loader2, LogOut, Trash2 } from "lucide-react";
+import { BookOpen, FilePlus2, Import, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,18 +108,6 @@ function StudioHome() {
         <Link to="/" className="font-serif text-lg tracking-tight">
           Storymatic
         </Link>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={async () => {
-            await supabase.auth.signOut();
-            queryClient.clear();
-            void navigate({ to: "/auth" });
-          }}
-        >
-          <LogOut className="size-4" aria-hidden="true" />
-          Sign out
-        </Button>
       </div>
 
       <h1 className="mt-10 font-serif text-3xl tracking-tight">Your projects</h1>

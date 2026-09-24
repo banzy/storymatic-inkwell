@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireLocalDatabase } from "@/integrations/mongodb/middleware";
 import { AiUnavailableError, generateJson } from "./ai.server";
 
 const uuid = z.string().uuid();
@@ -22,10 +22,10 @@ const SELECT =
   "id, scene_id, name, premise, notes, changes, consequences, origin, status, created_at";
 
 export const getPossibilities = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await context.db
       .from("story_possibilities")
       .select(SELECT)
       .eq("project_id", data.projectId)
@@ -35,7 +35,7 @@ export const getPossibilities = createServerFn({ method: "GET" })
   });
 
 export const savePossibility = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -56,14 +56,14 @@ export const savePossibility = createServerFn({ method: "POST" })
       notes: data.notes?.trim() || null,
     };
     if (data.id) {
-      const { error } = await context.supabase
+      const { error } = await context.db
         .from("story_possibilities")
         .update(patch)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true as const, id: data.id };
     }
-    const { data: inserted, error } = await context.supabase
+    const { data: inserted, error } = await context.db
       .from("story_possibilities")
       .insert({ ...patch, project_id: data.projectId, origin: "author", status: "exploring" })
       .select("id")
@@ -77,14 +77,14 @@ export const savePossibility = createServerFn({ method: "POST" })
  * it only records the author's decision so the writing room can reflect it.
  */
 export const setPossibilityStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({ id: uuid, status: z.enum(["exploring", "adopted", "discarded"]) })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("story_possibilities")
       .update({ status: data.status })
       .eq("id", data.id);
@@ -93,10 +93,10 @@ export const setPossibilityStatus = createServerFn({ method: "POST" })
   });
 
 export const deletePossibility = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ id: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("story_possibilities")
       .delete()
       .eq("id", data.id);
@@ -164,7 +164,7 @@ type ExploreResult = {
  * change and what it would touch elsewhere. Nothing is written, nothing is adopted.
  */
 export const exploreScene = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -175,9 +175,9 @@ export const exploreScene = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { db } = context;
 
-    const { data: scene, error: sceneError } = await supabase
+    const { data: scene, error: sceneError } = await db
       .from("scenes")
       .select("id, title, summary, plain_text, project_id")
       .eq("id", data.sceneId)
@@ -195,7 +195,7 @@ export const exploreScene = createServerFn({ method: "POST" })
       };
     }
 
-    const { data: directions } = await supabase
+    const { data: directions } = await db
       .from("author_directions")
       .select("subject, body, kind, status")
       .eq("project_id", data.projectId)
@@ -206,7 +206,7 @@ export const exploreScene = createServerFn({ method: "POST" })
       .map((row) => `- ${row.subject ? `${row.subject}: ` : ""}${row.body}`)
       .join("\n");
 
-    const { data: claims } = await supabase
+    const { data: claims } = await db
       .from("story_claims")
       .select("subject, assertion")
       .eq("project_id", data.projectId)
@@ -249,7 +249,7 @@ export const exploreScene = createServerFn({ method: "POST" })
     let added = 0;
     for (const possibility of (result.possibilities ?? []).slice(0, 3)) {
       if (!possibility.name?.trim() || !possibility.premise?.trim()) continue;
-      const { error } = await supabase.from("story_possibilities").insert({
+      const { error } = await db.from("story_possibilities").insert({
         project_id: data.projectId,
         scene_id: scene.id,
         name: possibility.name.slice(0, 200),

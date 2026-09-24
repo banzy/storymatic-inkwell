@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireLocalDatabase } from "@/integrations/mongodb/middleware";
 import { AiUnavailableError, generateJson } from "./ai.server";
 
 const uuid = z.string().uuid();
@@ -73,17 +73,17 @@ const backingQuote = (sceneText: string, quote: string): string | null => {
 
 /** Everything the Plot view reads. RLS scopes it to the owner. */
 export const getThreads = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
     const [threads, beats] = await Promise.all([
-      context.supabase
+      context.db
         .from("story_threads")
         .select(SELECT_THREADS)
         .eq("project_id", data.projectId)
         .order("position")
         .order("created_at"),
-      context.supabase
+      context.db
         .from("story_thread_beats")
         .select(SELECT_BEATS)
         .eq("project_id", data.projectId)
@@ -100,7 +100,7 @@ export const getThreads = createServerFn({ method: "GET" })
 
 /** The author's own thread — planned before it exists, or noted while writing. */
 export const saveThread = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -115,7 +115,7 @@ export const saveThread = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { db } = context;
     const patch = {
       kind: data.kind,
       name: data.name.trim(),
@@ -126,18 +126,18 @@ export const saveThread = createServerFn({ method: "POST" })
       author_confirmed: true,
     };
     if (data.id) {
-      const { error } = await supabase.from("story_threads").update(patch).eq("id", data.id);
+      const { error } = await db.from("story_threads").update(patch).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true as const, id: data.id };
     }
-    const { data: last } = await supabase
+    const { data: last } = await db
       .from("story_threads")
       .select("position")
       .eq("project_id", data.projectId)
       .order("position", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const { data: inserted, error } = await supabase
+    const { data: inserted, error } = await db
       .from("story_threads")
       .insert({
         ...patch,
@@ -152,14 +152,14 @@ export const saveThread = createServerFn({ method: "POST" })
   });
 
 export const setThreadStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({ id: uuid, status: z.enum(["planned", "open", "resolved", "dropped"]) })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("story_threads")
       .update({ status: data.status })
       .eq("id", data.id);
@@ -169,13 +169,13 @@ export const setThreadStatus = createServerFn({ method: "POST" })
 
 /** Agreeing with a reading, or setting it aside. Author threads are never deleted here. */
 export const judgeThread = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z.object({ id: uuid, confirmed: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     if (!data.confirmed) {
-      const { error } = await context.supabase
+      const { error } = await context.db
         .from("story_threads")
         .delete()
         .eq("id", data.id)
@@ -183,7 +183,7 @@ export const judgeThread = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { ok: true as const, removed: true };
     }
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("story_threads")
       .update({ author_confirmed: true, truth_type: "canonical" })
       .eq("id", data.id);
@@ -192,13 +192,13 @@ export const judgeThread = createServerFn({ method: "POST" })
   });
 
 export const judgeThreadBeat = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z.object({ id: uuid, confirmed: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     if (!data.confirmed) {
-      const { error } = await context.supabase
+      const { error } = await context.db
         .from("story_thread_beats")
         .delete()
         .eq("id", data.id)
@@ -206,7 +206,7 @@ export const judgeThreadBeat = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { ok: true as const };
     }
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("story_thread_beats")
       .update({ author_confirmed: true, truth_type: "canonical" })
       .eq("id", data.id);
@@ -215,10 +215,10 @@ export const judgeThreadBeat = createServerFn({ method: "POST" })
   });
 
 export const deleteThread = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ id: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("story_threads").delete().eq("id", data.id);
+    const { error } = await context.db.from("story_threads").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
@@ -292,11 +292,11 @@ type ThreadResult = {
  * quote isn't in the manuscript is dropped rather than kept.
  */
 export const readThreads = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: sceneRows, error: sceneError } = await supabase
+    const { db } = context;
+    const { data: sceneRows, error: sceneError } = await db
       .from("scenes")
       .select("id, title, position, plain_text")
       .eq("project_id", data.projectId)
@@ -345,7 +345,7 @@ export const readThreads = createServerFn({ method: "POST" })
     }
 
     // Only readings the author hasn't taken a view on are replaced.
-    const { error: clearError } = await supabase
+    const { error: clearError } = await db
       .from("story_threads")
       .delete()
       .eq("project_id", data.projectId)
@@ -383,7 +383,7 @@ export const readThreads = createServerFn({ method: "POST" })
       // A thread with nothing in the manuscript behind it is not a thread.
       if (usable.length === 0) continue;
 
-      const { data: inserted, error } = await supabase
+      const { data: inserted, error } = await db
         .from("story_threads")
         .insert({
           project_id: data.projectId,
@@ -405,7 +405,7 @@ export const readThreads = createServerFn({ method: "POST" })
 
       for (const item of usable) {
         const found = item.found!;
-        const { error: beatError } = await supabase.from("story_thread_beats").insert({
+        const { error: beatError } = await db.from("story_thread_beats").insert({
           project_id: data.projectId,
           thread_id: inserted.id,
           scene_id: found.id,

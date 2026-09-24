@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireLocalDatabase } from "@/integrations/mongodb/middleware";
 import { AiUnavailableError, generateJson } from "./ai.server";
 
 const uuid = z.string().uuid();
@@ -55,10 +55,10 @@ const backingQuote = (sceneText: string, quote: string): string | null => {
 
 /** Everything the Promises view reads. RLS scopes it to the owner. */
 export const getPromises = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await context.db
       .from("story_promises")
       .select(
         "id, title, promise, subject, setup_scene_id, setup_quote, payoff_scene_id, payoff_quote, status, truth_type, origin, author_confirmed, created_at",
@@ -71,7 +71,7 @@ export const getPromises = createServerFn({ method: "GET" })
 
 /** The author's own promise, written up front or noted while writing. */
 export const savePromise = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -87,7 +87,7 @@ export const savePromise = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { db } = context;
     const patch = {
       title: data.title.trim(),
       promise: data.promise.trim(),
@@ -99,11 +99,11 @@ export const savePromise = createServerFn({ method: "POST" })
       author_confirmed: true,
     };
     if (data.id) {
-      const { error } = await supabase.from("story_promises").update(patch).eq("id", data.id);
+      const { error } = await db.from("story_promises").update(patch).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true as const, id: data.id };
     }
-    const { data: inserted, error } = await supabase
+    const { data: inserted, error } = await db
       .from("story_promises")
       .insert({ ...patch, project_id: data.projectId, origin: "author" })
       .select("id")
@@ -114,13 +114,13 @@ export const savePromise = createServerFn({ method: "POST" })
 
 /** Accepting a reading, or setting it aside. Author rows are never deleted here. */
 export const judgePromise = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z.object({ id: uuid, confirmed: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     if (!data.confirmed) {
-      const { error } = await context.supabase
+      const { error } = await context.db
         .from("story_promises")
         .delete()
         .eq("id", data.id)
@@ -128,7 +128,7 @@ export const judgePromise = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { ok: true as const, removed: true };
     }
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("story_promises")
       .update({ author_confirmed: true, truth_type: "canonical" })
       .eq("id", data.id);
@@ -137,10 +137,10 @@ export const judgePromise = createServerFn({ method: "POST" })
   });
 
 export const deletePromise = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ id: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("story_promises").delete().eq("id", data.id);
+    const { error } = await context.db.from("story_promises").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
@@ -198,11 +198,11 @@ type PromiseResult = {
  * untouched, and readings the author already confirmed are kept.
  */
 export const readPromises = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: sceneRows, error: sceneError } = await supabase
+    const { db } = context;
+    const { data: sceneRows, error: sceneError } = await db
       .from("scenes")
       .select("id, title, position, plain_text")
       .eq("project_id", data.projectId)
@@ -249,7 +249,7 @@ export const readPromises = createServerFn({ method: "POST" })
     }
 
     // Only readings the author hasn't taken a view on are replaced.
-    const { error: clearError } = await supabase
+    const { error: clearError } = await db
       .from("story_promises")
       .delete()
       .eq("project_id", data.projectId)
@@ -290,7 +290,7 @@ export const readPromises = createServerFn({ method: "POST" })
       const hasPayoff = !!payoff;
 
 
-      const { error } = await supabase.from("story_promises").insert({
+      const { error } = await db.from("story_promises").insert({
         project_id: data.projectId,
         title: item.title.trim().slice(0, 200),
         promise: item.promise.trim().slice(0, 1200),

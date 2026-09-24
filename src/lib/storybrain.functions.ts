@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireLocalDatabase } from "@/integrations/mongodb/middleware";
 import { AiUnavailableError, generateJson } from "./ai.server";
 
 const uuid = z.string().uuid();
@@ -61,23 +61,23 @@ const normalise = (text: string) =>
 
 /** Everything the Synopsis, Relationships and Discoveries views read. RLS scopes it to the owner. */
 export const getStoryExtras = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { db } = context;
     const [synopses, relationships, beats, discoveries] = await Promise.all([
-      supabase
+      db
         .from("story_synopses")
         .select("id, scope, target_id, body, locked, source, updated_at")
         .eq("project_id", data.projectId),
-      supabase
+      db
         .from("story_relationships")
         .select(
           "id, from_entity_id, to_entity_id, nature, current_state, notes, truth_type, author_confirmed",
         )
         .eq("project_id", data.projectId)
         .order("created_at"),
-      supabase
+      db
         .from("relationship_beats")
         .select(
           "id, relationship_id, scene_id, story_position, change, evidence, truth_type, author_confirmed",
@@ -85,7 +85,7 @@ export const getStoryExtras = createServerFn({ method: "GET" })
         .eq("project_id", data.projectId)
         .order("story_position", { ascending: true, nullsFirst: false })
         .order("created_at"),
-      supabase
+      db
         .from("observations")
         .select(
           "id, scene_id, title, body, why_it_matters, uncertainty, status, origin, evidence, created_at",
@@ -128,7 +128,7 @@ const SYNOPSIS_SCHEMA = {
  * never touched, and an author-written one is only replaced on request.
  */
 export const writeSynopsis = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -140,9 +140,9 @@ export const writeSynopsis = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { db } = context;
 
-    const base = supabase
+    const base = db
       .from("story_synopses")
       .select("id, locked")
       .eq("project_id", data.projectId)
@@ -159,7 +159,7 @@ export const writeSynopsis = createServerFn({ method: "POST" })
       };
     }
 
-    const scenesQuery = supabase
+    const scenesQuery = db
       .from("scenes")
       .select("id, chapter_id, title, position, summary, plain_text")
       .eq("project_id", data.projectId)
@@ -176,7 +176,7 @@ export const writeSynopsis = createServerFn({ method: "POST" })
     let subject: string | null = null;
     let onlyScenes: Set<string> | null = null;
     if (data.scope === "character" && data.targetId) {
-      const { data: person } = await supabase
+      const { data: person } = await db
         .from("story_entities")
         .select("name, aliases")
         .eq("id", data.targetId)
@@ -202,8 +202,8 @@ export const writeSynopsis = createServerFn({ method: "POST" })
       );
     } else if (data.scope === "thread" && data.targetId) {
       const [threadResult, beatsResult] = await Promise.all([
-        supabase.from("story_threads").select("name, premise").eq("id", data.targetId).maybeSingle(),
-        supabase.from("story_thread_beats").select("scene_id").eq("thread_id", data.targetId),
+        db.from("story_threads").select("name, premise").eq("id", data.targetId).maybeSingle(),
+        db.from("story_thread_beats").select("scene_id").eq("thread_id", data.targetId),
       ]);
       const thread = threadResult.data;
       if (!thread) {
@@ -272,13 +272,13 @@ export const writeSynopsis = createServerFn({ method: "POST" })
 
     const body = result.body.trim().slice(0, 6000);
     if (row) {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await db
         .from("story_synopses")
         .update({ body, source: "inferred" })
         .eq("id", row.id);
       if (updateError) throw new Error(updateError.message);
     } else {
-      const { error: insertError } = await supabase.from("story_synopses").insert({
+      const { error: insertError } = await db.from("story_synopses").insert({
         project_id: data.projectId,
         scope: data.scope,
         target_id: data.targetId,
@@ -292,7 +292,7 @@ export const writeSynopsis = createServerFn({ method: "POST" })
 
 /** Keeps the author's own wording, and their lock. */
 export const saveSynopsis = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -305,7 +305,7 @@ export const saveSynopsis = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("story_synopses").upsert(
+    const { error } = await context.db.from("story_synopses").upsert(
       {
         project_id: data.projectId,
         scope: data.scope,
@@ -384,17 +384,17 @@ type RelResult = {
  * every moment must quote the scene it comes from.
  */
 export const readRelationships = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { db } = context;
     const [entitiesResult, scenesResult] = await Promise.all([
-      supabase
+      db
         .from("story_entities")
         .select("id, name, aliases, kind")
         .eq("project_id", data.projectId)
         .eq("kind", "character"),
-      supabase
+      db
         .from("scenes")
         .select("id, title, position, plain_text")
         .eq("project_id", data.projectId)
@@ -469,7 +469,7 @@ export const readRelationships = createServerFn({ method: "POST" })
         continue;
       }
 
-      const { data: existing } = await supabase
+      const { data: existing } = await db
         .from("story_relationships")
         .select("id, author_confirmed")
         .eq("project_id", data.projectId)
@@ -479,7 +479,7 @@ export const readRelationships = createServerFn({ method: "POST" })
 
       let relationshipId = existing?.id ?? null;
       if (!relationshipId) {
-        const { data: inserted, error: insertError } = await supabase
+        const { data: inserted, error: insertError } = await db
           .from("story_relationships")
           .insert({
             project_id: data.projectId,
@@ -496,7 +496,7 @@ export const readRelationships = createServerFn({ method: "POST" })
         relationshipId = inserted.id;
       } else if (!existing?.author_confirmed) {
         // Author-confirmed wording is never overwritten by a later reading.
-        const { error: updateError } = await supabase
+        const { error: updateError } = await db
           .from("story_relationships")
           .update({
             nature: item.nature.trim().slice(0, 400) || null,
@@ -508,7 +508,7 @@ export const readRelationships = createServerFn({ method: "POST" })
       pairs += 1;
 
       // Replace only the readings the author hasn't confirmed.
-      await supabase
+      await db
         .from("relationship_beats")
         .delete()
         .eq("relationship_id", relationshipId)
@@ -521,7 +521,7 @@ export const readRelationships = createServerFn({ method: "POST" })
           dropped += 1;
           continue;
         }
-        const { error: beatError } = await supabase.from("relationship_beats").insert({
+        const { error: beatError } = await db.from("relationship_beats").insert({
           project_id: data.projectId,
           relationship_id: relationshipId,
           scene_id: scene.id,
@@ -541,7 +541,7 @@ export const readRelationships = createServerFn({ method: "POST" })
 
 /** The author's own wording wins, permanently. */
 export const saveRelationship = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -553,7 +553,7 @@ export const saveRelationship = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("story_relationships")
       .update({
         nature: data.nature,
@@ -569,13 +569,13 @@ export const saveRelationship = createServerFn({ method: "POST" })
 
 /** Accepting or setting aside a reading — never automatic. */
 export const judgeRelationship = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z.object({ id: uuid, confirmed: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     if (!data.confirmed) {
-      const { error } = await context.supabase
+      const { error } = await context.db
         .from("story_relationships")
         .delete()
         .eq("id", data.id)
@@ -583,7 +583,7 @@ export const judgeRelationship = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { ok: true as const, removed: true };
     }
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("story_relationships")
       .update({ author_confirmed: true, truth_type: "canonical" })
       .eq("id", data.id);
@@ -592,20 +592,20 @@ export const judgeRelationship = createServerFn({ method: "POST" })
   });
 
 export const judgeRelationshipBeat = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z.object({ id: uuid, confirmed: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     if (!data.confirmed) {
-      const { error } = await context.supabase
+      const { error } = await context.db
         .from("relationship_beats")
         .delete()
         .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true as const };
     }
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("relationship_beats")
       .update({ author_confirmed: true, truth_type: "canonical" })
       .eq("id", data.id);
@@ -667,23 +667,23 @@ type DiscoveryResult = {
  * already answered are not raised again.
  */
 export const findDiscoveries = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { db } = context;
     const [scenesResult, claimsResult, existingResult] = await Promise.all([
-      supabase
+      db
         .from("scenes")
         .select("id, title, position, plain_text")
         .eq("project_id", data.projectId)
         .is("deleted_at", null)
         .order("position"),
-      supabase
+      db
         .from("story_claims")
         .select("subject, assertion, truth_type, story_position")
         .eq("project_id", data.projectId)
         .limit(120),
-      supabase.from("observations").select("title").eq("project_id", data.projectId),
+      db.from("observations").select("title").eq("project_id", data.projectId),
     ]);
     if (scenesResult.error) throw new Error(scenesResult.error.message);
     if (existingResult.error) throw new Error(existingResult.error.message);
@@ -747,7 +747,7 @@ export const findDiscoveries = createServerFn({ method: "POST" })
       }
       if (!title || seen.has(title.toLowerCase())) continue;
       seen.add(title.toLowerCase());
-      const { error } = await supabase.from("observations").insert({
+      const { error } = await db.from("observations").insert({
         project_id: data.projectId,
         scene_id: scene.id,
         title,

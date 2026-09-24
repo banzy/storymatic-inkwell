@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireLocalDatabase } from "@/integrations/mongodb/middleware";
 
 const uuid = z.string().uuid();
 
@@ -22,10 +22,10 @@ const SELECT = "id, title, body, link, tags, kind, created_at, updated_at";
  * ever read as something the book establishes.
  */
 export const getResearch = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await context.db
       .from("research_notes")
       .select(SELECT)
       .eq("project_id", data.projectId)
@@ -35,7 +35,7 @@ export const getResearch = createServerFn({ method: "GET" })
   });
 
 export const saveResearchNote = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -58,14 +58,14 @@ export const saveResearchNote = createServerFn({ method: "POST" })
       kind: data.kind,
     };
     if (data.id) {
-      const { error } = await context.supabase
+      const { error } = await context.db
         .from("research_notes")
         .update(patch)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true as const, id: data.id };
     }
-    const { data: inserted, error } = await context.supabase
+    const { data: inserted, error } = await context.db
       .from("research_notes")
       .insert({ ...patch, project_id: data.projectId })
       .select("id")
@@ -75,10 +75,10 @@ export const saveResearchNote = createServerFn({ method: "POST" })
   });
 
 export const deleteResearchNote = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ id: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("research_notes").delete().eq("id", data.id);
+    const { error } = await context.db.from("research_notes").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireLocalDatabase } from "@/integrations/mongodb/middleware";
 import { AiUnavailableError, generateJson } from "./ai.server";
 
 const uuid = z.string().uuid();
@@ -40,16 +40,16 @@ const SELECT_BEATS =
 
 /** Both lanes of the outline: what the author planned, and what the draft contains. */
 export const getOutline = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
     const [beats, scenes, chapters] = await Promise.all([
-      context.supabase
+      context.db
         .from("outline_beats")
         .select(SELECT_BEATS)
         .eq("project_id", data.projectId)
         .order("position"),
-      context.supabase
+      context.db
         .from("scenes")
         .select(
           "id, chapter_id, title, position, summary, pov, location, story_time, word_count, plain_text",
@@ -57,7 +57,7 @@ export const getOutline = createServerFn({ method: "GET" })
         .eq("project_id", data.projectId)
         .is("deleted_at", null)
         .order("position"),
-      context.supabase
+      context.db
         .from("chapters")
         .select("id, title, position")
         .eq("project_id", data.projectId)
@@ -87,7 +87,7 @@ export const getOutline = createServerFn({ method: "GET" })
   });
 
 export const saveBeat = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -101,9 +101,9 @@ export const saveBeat = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { db } = context;
     if (data.id) {
-      const { error } = await supabase
+      const { error } = await db
         .from("outline_beats")
         .update({
           kind: data.kind,
@@ -115,14 +115,14 @@ export const saveBeat = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
     }
-    const { data: last } = await supabase
+    const { data: last } = await db
       .from("outline_beats")
       .select("position")
       .eq("project_id", data.projectId)
       .order("position", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const { data: inserted, error } = await supabase
+    const { data: inserted, error } = await db
       .from("outline_beats")
       .insert({
         project_id: data.projectId,
@@ -139,19 +139,19 @@ export const saveBeat = createServerFn({ method: "POST" })
   });
 
 export const moveBeat = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z.object({ id: uuid, direction: z.enum(["up", "down"]) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: beat } = await supabase
+    const { db } = context;
+    const { data: beat } = await db
       .from("outline_beats")
       .select("id, project_id, position")
       .eq("id", data.id)
       .maybeSingle();
     if (!beat) throw new Error("Planned step not found");
-    const { data: neighbour } = await supabase
+    const { data: neighbour } = await db
       .from("outline_beats")
       .select("id, position")
       .eq("project_id", beat.project_id)
@@ -160,8 +160,8 @@ export const moveBeat = createServerFn({ method: "POST" })
       .limit(1)
       .maybeSingle();
     if (!neighbour) return { ok: true };
-    await supabase.from("outline_beats").update({ position: neighbour.position }).eq("id", beat.id);
-    await supabase
+    await db.from("outline_beats").update({ position: neighbour.position }).eq("id", beat.id);
+    await db
       .from("outline_beats")
       .update({ position: beat.position })
       .eq("id", neighbour.id);
@@ -169,7 +169,7 @@ export const moveBeat = createServerFn({ method: "POST" })
   });
 
 export const setBeatState = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -200,7 +200,7 @@ export const setBeatState = createServerFn({ method: "POST" })
       patch["author_confirmed"] = true;
       patch["link_basis"] = "author";
     }
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("outline_beats")
       .update(patch)
       .eq("id", data.id);
@@ -209,10 +209,10 @@ export const setBeatState = createServerFn({ method: "POST" })
   });
 
 export const deleteBeat = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ id: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("outline_beats").delete().eq("id", data.id);
+    const { error } = await context.db.from("outline_beats").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -273,17 +273,17 @@ type ReviewResult = {
  * nothing in the manuscript is changed.
  */
 export const reviewOutline = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { db } = context;
     const [beats, scenes] = await Promise.all([
-      supabase
+      db
         .from("outline_beats")
         .select("id, kind, title, intent, status, scene_id, author_confirmed")
         .eq("project_id", data.projectId)
         .order("position"),
-      supabase
+      db
         .from("scenes")
         .select("id, title, position, summary, plain_text")
         .eq("project_id", data.projectId)
@@ -347,7 +347,7 @@ export const reviewOutline = createServerFn({ method: "POST" })
       const beatId = beatRefs.get(link.beat_ref);
       if (!beatId) continue;
       const sceneId = link.scene_ref ? (sceneRefs.get(link.scene_ref) ?? null) : null;
-      await supabase
+      await db
         .from("outline_beats")
         .update({
           scene_id: sceneId,

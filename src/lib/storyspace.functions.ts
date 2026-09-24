@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireLocalDatabase } from "@/integrations/mongodb/middleware";
 import { AiUnavailableError, generateJson } from "./ai.server";
 
 const uuid = z.string().uuid();
@@ -54,11 +54,11 @@ type CardResult = {
  * Anything the author has written stays untouched.
  */
 export const describeScenes = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: scenes, error } = await supabase
+    const { db } = context;
+    const { data: scenes, error } = await db
       .from("scenes")
       .select("id, title, summary, pov, location, story_time, plain_text")
       .eq("project_id", data.projectId)
@@ -128,7 +128,7 @@ export const describeScenes = createServerFn({ method: "POST" })
       if (!scene.story_time && clean(card.story_time, 200))
         patch["story_time"] = clean(card.story_time, 200);
       if (Object.keys(patch).length === 0) continue;
-      const { error: updateError } = await supabase.from("scenes").update(patch).eq("id", sceneId);
+      const { error: updateError } = await db.from("scenes").update(patch).eq("id", sceneId);
       if (updateError) throw new Error(updateError.message);
       filled += 1;
     }
@@ -175,20 +175,20 @@ type MoveResult = { notes: { note: string; certainty: "clear" | "possible" }[] }
  * Nothing is rewritten and nothing is saved.
  */
 export const reviewSceneMove = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z.object({ projectId: uuid, sceneId: uuid }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { db } = context;
     const [scenesResult, chaptersResult] = await Promise.all([
-      supabase
+      db
         .from("scenes")
         .select("id, chapter_id, title, position, summary, plain_text")
         .eq("project_id", data.projectId)
         .is("deleted_at", null)
         .order("position"),
-      supabase
+      db
         .from("chapters")
         .select("id, position")
         .eq("project_id", data.projectId)

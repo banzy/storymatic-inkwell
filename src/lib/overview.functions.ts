@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireLocalDatabase } from "@/integrations/mongodb/middleware";
 
 const uuid = z.string().uuid();
 
@@ -27,38 +27,38 @@ export type StoryOverview = {
  * is scored, and nothing here changes the draft.
  */
 export const getStoryOverview = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { db } = context;
     const projectId = data.projectId;
 
     const [scenesRes, chaptersRes, revisionsRes, promisesRes, observationsRes, claimsRes, beatsRes] =
       await Promise.all([
-        supabase
+        db
           .from("scenes")
           .select("id, title, word_count, story_time, updated_at")
           .eq("project_id", projectId)
           .is("deleted_at", null)
           .order("position"),
-        supabase
+        db
           .from("chapters")
           .select("id")
           .eq("project_id", projectId)
           .is("deleted_at", null),
-        supabase
+        db
           .from("scene_revisions")
           .select("scene_id, word_count, created_at")
           .eq("project_id", projectId)
           .order("created_at", { ascending: false })
           .limit(24),
-        supabase
+        db
           .from("story_promises")
           .select("id, title, promise, status")
           .eq("project_id", projectId)
           .eq("status", "open")
           .order("created_at", { ascending: false }),
-        supabase
+        db
           .from("observations")
           .select("id, title, body, scene_id, status")
           .eq("project_id", projectId)
@@ -66,12 +66,12 @@ export const getStoryOverview = createServerFn({ method: "GET" })
           .eq("status", "open")
           .order("created_at", { ascending: false }),
 
-        supabase
+        db
           .from("story_claims")
           .select("id")
           .eq("project_id", projectId)
           .eq("validity", "needs_review"),
-        supabase
+        db
           .from("outline_beats")
           .select("id, title, status, scene_id")
           .eq("project_id", projectId)

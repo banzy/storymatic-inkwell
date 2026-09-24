@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireLocalDatabase } from "@/integrations/mongodb/middleware";
 import { AiUnavailableError, generateJson } from "./ai.server";
 
 const uuid = z.string().uuid();
@@ -47,10 +47,10 @@ const SELECT =
   "id, scene_id, summary, when_text, order_hint, certainty, evidence, truth_type, origin, author_confirmed";
 
 export const getChronology = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await context.db
       .from("story_events")
       .select(SELECT)
       .eq("project_id", data.projectId)
@@ -60,7 +60,7 @@ export const getChronology = createServerFn({ method: "GET" })
   });
 
 export const saveStoryEvent = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -83,21 +83,21 @@ export const saveStoryEvent = createServerFn({ method: "POST" })
       author_confirmed: true,
     };
     if (data.id) {
-      const { error } = await context.supabase
+      const { error } = await context.db
         .from("story_events")
         .update(patch)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true as const, id: data.id };
     }
-    const { data: last } = await context.supabase
+    const { data: last } = await context.db
       .from("story_events")
       .select("order_hint")
       .eq("project_id", data.projectId)
       .order("order_hint", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const { data: inserted, error } = await context.supabase
+    const { data: inserted, error } = await context.db
       .from("story_events")
       .insert({
         ...patch,
@@ -113,13 +113,13 @@ export const saveStoryEvent = createServerFn({ method: "POST" })
 
 /** Confirming keeps a reading; declining removes it. Author events stay put. */
 export const judgeStoryEvent = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z.object({ id: uuid, confirmed: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     if (!data.confirmed) {
-      const { error } = await context.supabase
+      const { error } = await context.db
         .from("story_events")
         .delete()
         .eq("id", data.id)
@@ -127,7 +127,7 @@ export const judgeStoryEvent = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { ok: true as const };
     }
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("story_events")
       .update({ author_confirmed: true, truth_type: "canonical" })
       .eq("id", data.id);
@@ -136,22 +136,22 @@ export const judgeStoryEvent = createServerFn({ method: "POST" })
   });
 
 export const deleteStoryEvent = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ id: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("story_events").delete().eq("id", data.id);
+    const { error } = await context.db.from("story_events").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
 
 /** Moves an event one place earlier or later in the story's own chronology. */
 export const moveStoryEvent = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z.object({ projectId: uuid, id: uuid, direction: z.enum(["up", "down"]) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await context.db
       .from("story_events")
       .select("id, order_hint")
       .eq("project_id", data.projectId)
@@ -163,8 +163,8 @@ export const moveStoryEvent = createServerFn({ method: "POST" })
     if (index < 0 || swapWith < 0 || swapWith >= list.length) return { ok: true as const };
     const a = list[index]!;
     const b = list[swapWith]!;
-    await context.supabase.from("story_events").update({ order_hint: b.order_hint }).eq("id", a.id);
-    await context.supabase.from("story_events").update({ order_hint: a.order_hint }).eq("id", b.id);
+    await context.db.from("story_events").update({ order_hint: b.order_hint }).eq("id", a.id);
+    await context.db.from("story_events").update({ order_hint: a.order_hint }).eq("id", b.id);
     return { ok: true as const };
   });
 
@@ -219,11 +219,11 @@ type ChronologyResult = {
  * touched, and events without a real passage behind them are dropped.
  */
 export const readChronology = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: sceneRows, error: sceneError } = await supabase
+    const { db } = context;
+    const { data: sceneRows, error: sceneError } = await db
       .from("scenes")
       .select("id, title, position, plain_text")
       .eq("project_id", data.projectId)
@@ -268,7 +268,7 @@ export const readChronology = createServerFn({ method: "POST" })
       };
     }
 
-    await supabase
+    await db
       .from("story_events")
       .delete()
       .eq("project_id", data.projectId)
@@ -289,7 +289,7 @@ export const readChronology = createServerFn({ method: "POST" })
       return null;
     };
 
-    const { data: last } = await supabase
+    const { data: last } = await db
       .from("story_events")
       .select("order_hint")
       .eq("project_id", data.projectId)
@@ -312,7 +312,7 @@ export const readChronology = createServerFn({ method: "POST" })
       const certainty = ["clear", "roughly", "unclear"].includes(event.certainty)
         ? event.certainty
         : "unclear";
-      const { error } = await supabase.from("story_events").insert({
+      const { error } = await db.from("story_events").insert({
         project_id: data.projectId,
         scene_id: hit.scene.id,
         summary: event.summary.slice(0, 600),

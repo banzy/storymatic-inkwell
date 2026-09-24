@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireLocalDatabase } from "@/integrations/mongodb/middleware";
 import { AiUnavailableError, generateJson } from "./ai.server";
 
 const uuid = z.string().uuid();
@@ -34,10 +34,10 @@ const normalise = (text: string) =>
  * establishes.
  */
 export const getThemes = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await context.db
       .from("observations")
       .select(SELECT)
       .eq("project_id", data.projectId)
@@ -49,7 +49,7 @@ export const getThemes = createServerFn({ method: "GET" })
 
 /** A theme the author names themselves. Their wording is never rewritten. */
 export const saveTheme = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -70,14 +70,14 @@ export const saveTheme = createServerFn({ method: "POST" })
       scene_id: data.sceneId,
     };
     if (data.id) {
-      const { error } = await context.supabase
+      const { error } = await context.db
         .from("observations")
         .update(patch)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true as const };
     }
-    const { error } = await context.supabase.from("observations").insert({
+    const { error } = await context.db.from("observations").insert({
       ...patch,
       project_id: data.projectId,
       kind: "theme",
@@ -90,10 +90,10 @@ export const saveTheme = createServerFn({ method: "POST" })
   });
 
 export const deleteTheme = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ id: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await context.db
       .from("observations")
       .delete()
       .eq("id", data.id)
@@ -156,11 +156,11 @@ type ThemeResult = {
  * own themes are never touched.
  */
 export const readThemes = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireLocalDatabase])
   .inputValidator((input: unknown) => z.object({ projectId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: scenes, error } = await supabase
+    const { db } = context;
+    const { data: scenes, error } = await db
       .from("scenes")
       .select("id, title, position, plain_text")
       .eq("project_id", data.projectId)
@@ -207,7 +207,7 @@ export const readThemes = createServerFn({ method: "POST" })
     }
 
     // Only its own earlier readings are cleared; anything you noted stays.
-    await supabase
+    await db
       .from("observations")
       .delete()
       .eq("project_id", data.projectId)
@@ -225,7 +225,7 @@ export const readThemes = createServerFn({ method: "POST" })
         dropped += 1;
         continue;
       }
-      const { error: insertError } = await supabase.from("observations").insert({
+      const { error: insertError } = await db.from("observations").insert({
         project_id: data.projectId,
         scene_id: scene.id,
         kind: "theme",
