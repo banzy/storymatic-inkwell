@@ -97,6 +97,9 @@ export function OutlineSidebar(props: {
       </div>
 
       <div className="px-3 pb-3">
+        <a href={`/book/${projectId}`} className="mb-3 block rounded-md border border-sidebar-border bg-card px-3 py-2 text-sm font-medium">
+          Develop this book
+        </a>
         <label className="sr-only" htmlFor="project-switcher">
           Switch project
         </label>

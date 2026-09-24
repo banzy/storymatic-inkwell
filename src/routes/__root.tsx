@@ -5,6 +5,7 @@ import {
   createRootRouteWithContext,
   HeadContent,
   Scripts,
+  useRouter,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 

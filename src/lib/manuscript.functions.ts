@@ -846,6 +846,4 @@ export const setObservationStatus = createServerFn({ method: "POST" })
   });
 
 /** Minimal structural type so the sample builder can accept the request client. */
-type MongoLike = {
-  from: (table: string) => any;
-};
+type MongoLike = typeof import("@/integrations/mongodb/db").db;

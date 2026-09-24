@@ -1,7 +1,14 @@
 import { MongoClient, type Document, type Filter } from "mongodb";
 import { randomUUID } from "node:crypto";
+import type { MongoCollections } from "./collections";
 
-type QueryResult<T = unknown> = { data: T | null; error: Error | null };
+type QueryResult<T = unknown> = { data: T; error: null } | { data: null; error: Error };
+type QueryMode = "many" | "single" | "maybeSingle";
+type QueryData<Row, Mode extends QueryMode> = Mode extends "many"
+  ? Row[]
+  : Mode extends "single"
+    ? Row
+    : Row | null;
 type OrderOptions = { ascending?: boolean; nullsFirst?: boolean };
 
 const DEFAULTS: Record<string, Record<string, unknown>> = {
@@ -41,14 +48,14 @@ const DEFAULTS: Record<string, Record<string, unknown>> = {
 
 let client: MongoClient | undefined;
 
-function getDatabase() {
-  const uri = process.env.MONGODB_URI;
-  const databaseName = process.env.MONGODB_DB;
+export function getDatabase() {
+  const uri = process.env["MONGODB_URI"];
+  const databaseName = process.env["MONGODB_DB"];
   if (!uri || !databaseName) {
     throw new Error("Missing MONGODB_URI or MONGODB_DB in the environment.");
   }
 
-  client ??= new MongoClient(uri);
+  client ??= new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
   return client.db(databaseName);
 }
 
@@ -65,7 +72,9 @@ function project(row: Document, fields: string | null) {
   );
 }
 
-class MongoQuery implements PromiseLike<QueryResult> {
+class MongoQuery<Row extends object, Mode extends QueryMode = "many"> implements PromiseLike<
+  QueryResult<QueryData<Row, Mode>>
+> {
   private filters: Filter<Document> = {};
   private selectedFields: string | null = null;
   private operation: "select" | "insert" | "update" | "delete" | "upsert" = "select";
@@ -152,19 +161,23 @@ class MongoQuery implements PromiseLike<QueryResult> {
 
   single() {
     this.mode = "single";
-    return this;
+    return this as unknown as MongoQuery<Row, "single">;
   }
 
   maybeSingle() {
     this.mode = "maybeSingle";
-    return this;
+    return this as unknown as MongoQuery<Row, "maybeSingle">;
   }
 
-  then<TResult1 = QueryResult, TResult2 = never>(
-    onfulfilled?: ((value: QueryResult) => TResult1 | PromiseLike<TResult1>) | null,
+  then<TResult1 = QueryResult<QueryData<Row, Mode>>, TResult2 = never>(
+    onfulfilled?:
+      ((value: QueryResult<QueryData<Row, Mode>>) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
   ) {
-    return this.execute().then(onfulfilled, onrejected);
+    return (this.execute() as Promise<QueryResult<QueryData<Row, Mode>>>).then(
+      onfulfilled,
+      onrejected,
+    );
   }
 
   private async execute(): Promise<QueryResult> {
@@ -236,7 +249,7 @@ class MongoQuery implements PromiseLike<QueryResult> {
 }
 
 export const db = {
-  from(table: string) {
-    return new MongoQuery(table) as any;
+  from<Table extends keyof MongoCollections>(table: Table) {
+    return new MongoQuery<MongoCollections[Table]>(table);
   },
 };

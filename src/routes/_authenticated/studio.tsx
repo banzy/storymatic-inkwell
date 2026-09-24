@@ -71,7 +71,7 @@ function StudioHome() {
     mutationFn: (projectTitle: string) => create({ data: { title: projectTitle } }),
     onSuccess: ({ projectId }) => {
       void queryClient.invalidateQueries({ queryKey: ["projects"] });
-      void navigate({ to: "/p/$projectId", params: { projectId } });
+      void navigate({ to: "/book/$projectId", params: { projectId } });
     },
     onError: () => toast.error("Couldn't create the project."),
   });

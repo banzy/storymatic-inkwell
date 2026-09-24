@@ -1,8 +1,29 @@
 # Storymatic — creative partnership action plan
 
 Date: 24 September 2026  
-Status: Proposed product and implementation plan. No application changes made.  
+Status: Accepted direction; first engine increment implemented.
 Basis: The author's conversations in this task and inspection of the current repository.
+
+### Implementation update — 24 September 2026
+
+The author confirmed that engine development comes first, existing UI should be
+reused, and persistence must use local MongoDB (`localhost:27017`, database
+`storymatic`). The prior Supabase migration has been replaced with the local
+MongoDB adapter. References to Supabase below describe the original inspection,
+not the chosen persistence architecture.
+
+The first increment provides persistent creative conversations, structured book
+proposals with provenance and uncertainty, explicit adoption and undo, proposed
+scene drafts, and recoverable adoption into the existing manuscript. It also
+serializes scene autosaves so an older request cannot overwrite newer writing.
+See [the engine guide](./STORYMATIC_ENGINE.md) for its boundaries and verification.
+
+This starts phases 0–1; it does not complete the full roadmap. Next priorities are
+evidence-backed understanding of manuscript revisions, explicit character/reader
+knowledge at each scene, and independent disclosure review. Those are necessary
+to substantiate the defining promise of a novel that develops its understanding
+as it is written. Full planning integration with the existing Story Space and
+novel-scale context retrieval also remain open.
 
 ## 1. The product we are building
 

@@ -414,7 +414,7 @@ function Workspace() {
     setExtrasBusy(true);
     setStoryMessage("Reading what the draft sets up…");
     try {
-      await autosave.flush();
+      if (!(await autosave.flush())) return;
       const result = await readPromisesFn({ data: { projectId } });
       if (result.ok) {
         await refreshPromises();
@@ -453,7 +453,7 @@ function Workspace() {
     setExtrasBusy(true);
     setStoryMessage("Reading what the scenes are carrying…");
     try {
-      await autosave.flush();
+      if (!(await autosave.flush())) return;
       const result = await readThreadsFn({ data: { projectId } });
       if (result.ok) {
         await refreshThreads();
@@ -484,7 +484,7 @@ function Workspace() {
     setExtrasBusy(true);
     setStoryMessage("Reading for what keeps coming back…");
     try {
-      await autosave.flush();
+      if (!(await autosave.flush())) return;
       const result = await readThemesFn({ data: { projectId } });
       if (result.ok) {
         await refreshThemes();
@@ -515,7 +515,7 @@ function Workspace() {
     setExtrasBusy(true);
     setStoryMessage("Comparing the scenes with each other…");
     try {
-      await autosave.flush();
+      if (!(await autosave.flush())) return;
       const result = await readContradictionsFn({ data: { projectId } });
       if (result.ok) {
         await refreshQuestions();
@@ -556,7 +556,7 @@ function Workspace() {
     setExtrasBusy(true);
     setStoryMessage("Thinking about ways this scene could go…");
     try {
-      await autosave.flush();
+      if (!(await autosave.flush())) return;
       const result = await exploreSceneFn({
         data: { projectId, sceneId: activeSceneId, question: null },
       });
@@ -605,7 +605,7 @@ function Workspace() {
     setExtrasBusy(true);
     setStoryMessage("Working out when things happen…");
     try {
-      await autosave.flush();
+      if (!(await autosave.flush())) return;
       const result = await readChronologyFn({ data: { projectId } });
       if (result.ok) {
         await refreshChronology();
@@ -649,7 +649,7 @@ function Workspace() {
     setExtrasBusy(true);
     setStoryMessage("Reading the world your scenes have built…");
     try {
-      await autosave.flush();
+      if (!(await autosave.flush())) return;
       const result = await readWorldFn({ data: { projectId } });
       if (result.ok) {
         await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
@@ -733,7 +733,7 @@ function Workspace() {
     setExtrasBusy(true);
     setStoryMessage("Reading how your people stand with each other…");
     try {
-      await autosave.flush();
+      if (!(await autosave.flush())) return;
       const result = await readRelationshipsFn({ data: { projectId } });
       if (result.ok) {
         await refreshExtras();
@@ -758,7 +758,7 @@ function Workspace() {
     setExtrasBusy(true);
     setStoryMessage("Looking across your scenes…");
     try {
-      await autosave.flush();
+      if (!(await autosave.flush())) return;
       const result = await findDiscoveriesFn({ data: { projectId } });
       if (result.ok) {
         await refreshExtras();
@@ -782,7 +782,7 @@ function Workspace() {
     setReviewingOutline(true);
     setOutlineMessage("Comparing your plan with the draft…");
     try {
-      await autosave.flush();
+      if (!(await autosave.flush())) return;
       const result = await reviewOutlineFn({ data: { projectId } });
       if (result.ok) {
         setUnplanned(result.unplanned);
@@ -810,7 +810,7 @@ function Workspace() {
     setFillingCards(true);
     setStoryMessage("Reading your scenes…");
     try {
-      await autosave.flush();
+      if (!(await autosave.flush())) return;
       const result = await describeScenesFn({ data: { projectId } });
       if (result.ok) {
         await refreshOutline();
@@ -851,7 +851,7 @@ function Workspace() {
     setAnalysisMessage("Updating story understanding…");
     try {
       // Only the open scene is read; the rest of the manuscript is left alone.
-      await autosave.flush();
+      if (!(await autosave.flush())) return;
       const result = await analyseSceneFn({ data: { projectId, sceneId: activeSceneId } });
       if (result.ok) {
         await queryClient.invalidateQueries({ queryKey: ["story-model", projectId] });
@@ -878,7 +878,7 @@ function Workspace() {
     if (scenes.length === 0) return;
     setExtrasBusy(true);
     try {
-      await autosave.flush();
+      if (!(await autosave.flush())) return;
       let noted = 0;
       let failure: string | null = null;
       for (const [index, item] of scenes.entries()) {
@@ -948,7 +948,7 @@ function Workspace() {
   const goToScene = useCallback(
     async (sceneId: string) => {
       // Pending changes are written before the manuscript surface changes.
-      await autosave.flush();
+      if (!(await autosave.flush())) return;
       void navigate({ to: "/p/$projectId", params: { projectId }, search: { scene: sceneId } });
     },
     [autosave, navigate, projectId],
@@ -1144,10 +1144,11 @@ function Workspace() {
     }
 
     autosave.change(editor.getJSON() as never);
-    await autosave.flush();
-    void queryClient.invalidateQueries({ queryKey: ["revisions", activeSceneId] });
+    // The editor already contains the change, even if persistence needs a retry.
     setProposal(null);
     setPanelView("scene");
+    if (!(await autosave.flush())) return;
+    void queryClient.invalidateQueries({ queryKey: ["revisions", activeSceneId] });
     toast.success("Change applied. The previous version is in revision history.");
   };
 
@@ -2254,7 +2255,7 @@ function Workspace() {
           onOpenEvidence={(sceneId, quote) => void openEvidence(sceneId, quote)}
           onRestoreRevision={(revisionId) =>
             mutate.mutate(async () => {
-              await autosave.flush();
+              if (!(await autosave.flush())) return;
               await restoreFn({ data: { revisionId } });
               await queryClient.invalidateQueries({ queryKey: ["scene", activeSceneId] });
               await queryClient.invalidateQueries({ queryKey: ["revisions", activeSceneId] });

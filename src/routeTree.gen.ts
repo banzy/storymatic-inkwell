@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated/studio'
+import { Route as AuthenticatedBookProjectIdRouteImport } from './routes/_authenticated/book.$projectId'
 import { Route as AuthenticatedPProjectIdRouteImport } from './routes/_authenticated/p.$projectId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -34,6 +35,12 @@ const AuthenticatedStudioRoute = AuthenticatedStudioRouteImport.update({
   path: '/studio',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBookProjectIdRoute =
+  AuthenticatedBookProjectIdRouteImport.update({
+    id: '/book/$projectId',
+    path: '/book/$projectId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPProjectIdRoute = AuthenticatedPProjectIdRouteImport.update({
   id: '/p/$projectId',
   path: '/p/$projectId',
@@ -44,12 +51,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/studio': typeof AuthenticatedStudioRoute
+  '/book/$projectId': typeof AuthenticatedBookProjectIdRoute
   '/p/$projectId': typeof AuthenticatedPProjectIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/studio': typeof AuthenticatedStudioRoute
+  '/book/$projectId': typeof AuthenticatedBookProjectIdRoute
   '/p/$projectId': typeof AuthenticatedPProjectIdRoute
 }
 export interface FileRoutesById {
@@ -58,19 +67,21 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
+  '/_authenticated/book/$projectId': typeof AuthenticatedBookProjectIdRoute
   '/_authenticated/p/$projectId': typeof AuthenticatedPProjectIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/studio' | '/p/$projectId'
+  fullPaths: '/' | '/auth' | '/studio' | '/book/$projectId' | '/p/$projectId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/studio' | '/p/$projectId'
+  to: '/' | '/auth' | '/studio' | '/book/$projectId' | '/p/$projectId'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/studio'
+    | '/_authenticated/book/$projectId'
     | '/_authenticated/p/$projectId'
   fileRoutesById: FileRoutesById
 }
@@ -110,6 +121,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedStudioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/book/$projectId': {
+      id: '/_authenticated/book/$projectId'
+      path: '/book/$projectId'
+      fullPath: '/book/$projectId'
+      preLoaderRoute: typeof AuthenticatedBookProjectIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/p/$projectId': {
       id: '/_authenticated/p/$projectId'
       path: '/p/$projectId'
@@ -122,11 +140,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedStudioRoute: typeof AuthenticatedStudioRoute
+  AuthenticatedBookProjectIdRoute: typeof AuthenticatedBookProjectIdRoute
   AuthenticatedPProjectIdRoute: typeof AuthenticatedPProjectIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedStudioRoute: AuthenticatedStudioRoute,
+  AuthenticatedBookProjectIdRoute: AuthenticatedBookProjectIdRoute,
   AuthenticatedPProjectIdRoute: AuthenticatedPProjectIdRoute,
 }
 

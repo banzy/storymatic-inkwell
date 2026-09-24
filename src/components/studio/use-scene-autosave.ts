@@ -2,18 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { saveScene } from "@/lib/manuscript.functions";
 import { countWords, docToPlainText, type ProseDoc } from "@/lib/prose";
+import { SaveQueue } from "@/lib/save-queue";
 
 export type SaveStatus = "idle" | "unsaved" | "saving" | "saved" | "error";
-
-export type LocalDraft = {
-  sceneId: string;
-  content: ProseDoc;
-  plainText: string;
-  savedAt: string;
-};
-
+export type LocalDraft = { sceneId: string; content: ProseDoc; plainText: string; savedAt: string };
 const draftKey = (sceneId: string) => `storymatic:draft:${sceneId}`;
-
 function readLocalDraft(sceneId: string): LocalDraft | null {
   try {
     const raw = localStorage.getItem(draftKey(sceneId));
@@ -23,127 +16,135 @@ function readLocalDraft(sceneId: string): LocalDraft | null {
   }
 }
 
-/**
- * Debounced autosave for a single scene.
- *
- * "Saved" is only shown after the server confirms persistence. If the save
- * fails, the text is kept in a local recovery draft and surfaced for explicit
- * reconciliation instead of being silently dropped.
- */
 export function useSceneAutosave(options: {
   sceneId: string | null;
   serverPlainText: string;
   onSaved?: () => void;
 }) {
-  const { sceneId, serverPlainText, onSaved } = options;
+  const { sceneId } = options;
   const save = useServerFn(saveScene);
-
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [recovery, setRecovery] = useState<LocalDraft | null>(null);
-
-  const pending = useRef<ProseDoc | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inFlight = useRef(false);
+  const current = useRef({ ...options, save });
+  current.current = { ...options, save };
+  const dirty = useRef(false);
+
+  const queue = useMemo(
+    () =>
+      new SaveQueue<ProseDoc>(async (doc) => {
+        if (!sceneId) return;
+        const active = () => current.current.sceneId === sceneId;
+        if (active()) setStatus("saving");
+        const plainText = docToPlainText(doc);
+        try {
+          const result = await current.current.save({
+            data: { sceneId, content: doc, plainText, wordCount: countWords(plainText) },
+          });
+          // Never remove a newer recovery document when an older request completes.
+          try {
+            const draft = readLocalDraft(sceneId);
+            if (draft && JSON.stringify(draft.content) === JSON.stringify(doc))
+              localStorage.removeItem(draftKey(sceneId));
+          } catch {
+            /* Remote persistence succeeded; unavailable local storage is not a save failure. */
+          }
+          if (active()) {
+            setLastSavedAt(result.savedAt);
+            setErrorMessage(null);
+            current.current.onSaved?.();
+          }
+        } catch (error) {
+          if (active()) {
+            setStatus("error");
+            setErrorMessage(error instanceof Error ? error.message : "Couldn't save");
+          }
+          throw error;
+        }
+      }),
+    [sceneId],
+  );
 
   useEffect(() => {
-    pending.current = null;
+    dirty.current = false;
     setStatus("idle");
     setErrorMessage(null);
-    if (timer.current) clearTimeout(timer.current);
-    if (!sceneId) {
-      setRecovery(null);
-      return;
-    }
-    const draft = readLocalDraft(sceneId);
-    setRecovery(draft && draft.plainText !== serverPlainText ? draft : null);
-    if (draft && draft.plainText === serverPlainText) localStorage.removeItem(draftKey(sceneId));
-  }, [sceneId, serverPlainText]);
+    setLastSavedAt(null);
+    // A server refresh must never reset the pending queue. Formatting-only drafts count too.
+    setRecovery(sceneId ? readLocalDraft(sceneId) : null);
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [sceneId]);
 
-  const persist = useCallback(async () => {
-    if (!sceneId) return;
-    const doc = pending.current;
-    if (!doc || inFlight.current) return;
-    inFlight.current = true;
-    pending.current = null;
-    setStatus("saving");
-    const plainText = docToPlainText(doc);
-    try {
-      const result = await save({
-        data: { sceneId, content: doc, plainText, wordCount: countWords(plainText) },
-      });
-      localStorage.removeItem(draftKey(sceneId));
-      setLastSavedAt(result.savedAt);
-      setErrorMessage(null);
-      setStatus(pending.current ? "unsaved" : "saved");
-      onSaved?.();
-    } catch (error) {
-      // Keep the text recoverable; never claim it was saved.
-      pending.current = doc;
-      setStatus("error");
-      setErrorMessage(error instanceof Error ? error.message : "Couldn't save");
-    } finally {
-      inFlight.current = false;
+  const flush = useCallback(async () => {
+    if (timer.current) clearTimeout(timer.current);
+    const ok = await queue.flush();
+    if (ok && current.current.sceneId === sceneId && dirty.current) {
+      dirty.current = false;
+      setStatus("saved");
     }
-  }, [sceneId, save, onSaved]);
+    return ok;
+  }, [queue, sceneId]);
 
   const change = useCallback(
     (doc: ProseDoc) => {
       if (!sceneId) return;
-      pending.current = doc;
+      dirty.current = true;
+      queue.enqueue(doc);
       setStatus("unsaved");
       try {
-        const plainText = docToPlainText(doc);
         localStorage.setItem(
           draftKey(sceneId),
-          JSON.stringify({ sceneId, content: doc, plainText, savedAt: new Date().toISOString() }),
+          JSON.stringify({
+            sceneId,
+            content: doc,
+            plainText: docToPlainText(doc),
+            savedAt: new Date().toISOString(),
+          }),
         );
       } catch {
-        /* storage may be unavailable; the debounced save is still the source of truth */
+        /* The queue still saves when local storage is unavailable. */
       }
       if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => void persist(), 1000);
+      timer.current = setTimeout(() => void flush(), 1000);
     },
-    [sceneId, persist],
+    [queue, sceneId, flush],
   );
-
-  const flush = useCallback(async () => {
-    if (timer.current) clearTimeout(timer.current);
-    await persist();
-  }, [persist]);
-
-  const retry = useCallback(() => void persist(), [persist]);
-
+  const retry = useCallback(() => void flush(), [flush]);
   const hasUnsaved = status === "unsaved" || status === "saving" || status === "error";
-
   useEffect(() => {
     const handler = (event: BeforeUnloadEvent) => {
-      if (!hasUnsaved) return;
-      event.preventDefault();
-      event.returnValue = "";
+      if (dirty.current) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [hasUnsaved]);
-
+  }, []);
   const dismissRecovery = useCallback(() => {
-    if (sceneId) localStorage.removeItem(draftKey(sceneId));
+    // Restore calls change() before this method, so a restored pending draft survives.
+    if (sceneId && !dirty.current) {
+      try {
+        localStorage.removeItem(draftKey(sceneId));
+      } catch {
+        /* Unavailable storage. */
+      }
+    }
     setRecovery(null);
   }, [sceneId]);
-
-  return useMemo(
-    () => ({
-      status,
-      lastSavedAt,
-      errorMessage,
-      hasUnsaved,
-      change,
-      flush,
-      retry,
-      recovery,
-      dismissRecovery,
-    }),
-    [status, lastSavedAt, errorMessage, hasUnsaved, change, flush, retry, recovery, dismissRecovery],
-  );
+  return {
+    status,
+    lastSavedAt,
+    errorMessage,
+    hasUnsaved,
+    change,
+    flush,
+    retry,
+    recovery,
+    dismissRecovery,
+  };
 }

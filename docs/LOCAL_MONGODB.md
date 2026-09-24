@@ -14,7 +14,12 @@ MONGODB_DB=storymatic
 npm run dev
 ```
 
-Collections are created automatically as you use the app. To start over during
-development, drop the `storymatic` database from MongoDB, then reload the app.
+Collections are created automatically as you use the app. Existing projects and
+manuscripts are preserved. The conversation engine adds a `book_engines` collection.
 
 There is no login flow or cloud database connection in this local setup.
+This is a local, single-user application; keep the development server on your own machine.
+
+For the AI configuration, conversation workflow, verification commands and current
+limits, see [the engine guide](./STORYMATIC_ENGINE.md). Persistence is local; AI
+requests send selected book content to the configured provider.
