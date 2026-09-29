@@ -13,12 +13,15 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    // tr46 (via the database driver) requires "punycode/" — use the real package, not the runtime stub.
+    resolve: {
+      alias: {
+        "punycode/": fileURLToPath(new URL("./node_modules/punycode/punycode.js", import.meta.url)),
+      },
+    },
+  },
   nitro: {
     preset: "node-server",
-    // tr46 (via the database driver) requires "punycode/" — the userland package.
-    // Point it at the real package instead of the runtime's built-in stub.
-    alias: {
-      "punycode/": fileURLToPath(new URL("./node_modules/punycode/punycode.js", import.meta.url)),
-    },
   },
 });
