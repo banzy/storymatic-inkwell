@@ -98,9 +98,9 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
 - Real sign-in restoration awaits user's go-ahead.
 
 ## Current milestone — conversation-led UI amendment (approved 2026-09-28)
-- [ ] Pass 1: shared Develop / Book / Manuscript shell and manuscript-local tools.
-- [ ] Pass 2: Develop conversation, proposals, scene drafts and book-at-a-glance.
-- [ ] Pass 3: Book organized from adopted engine items; legacy insights secondary.
-- [ ] Pass 4: studio and landing copy, project entry paths.
+- [x] Pass 1: shared Develop / Book / Manuscript shell and manuscript-local tools.
+- [x] Pass 2: Develop conversation, proposals, scene drafts and book-at-a-glance.
+- [x] Pass 3: Book organized from adopted engine items; legacy insights secondary.
+- [x] Pass 4: studio and landing copy, project entry paths.
 - [ ] Pass 5: responsive/accessibility and behavior verification.
 - [ ] Credit checkpoint: stop after five credits of resumed work and ask before continuing.

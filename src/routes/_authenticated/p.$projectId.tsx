@@ -220,6 +220,7 @@ function SaveIndicator(props: {
         </span>
       )}
     </div>
+    </ProjectShell>
   );
 }
 
