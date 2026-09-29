@@ -4,6 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ProjectShell } from "@/components/studio/project-shell";
+import { BookAtGlance, BookMemory } from "@/components/studio/book-memory";
 import {
   getBookEngine,
   sendBookMessage,
@@ -11,15 +14,22 @@ import {
   undoBookChange,
   adoptBookDraft,
 } from "@/lib/engine.functions";
-import { itemKindLabels, itemKinds, type EngineState } from "@/lib/engine/model";
+import { itemKindLabels, type EngineState } from "@/lib/engine/model";
 
 export const Route = createFileRoute("/_authenticated/book/$projectId")({
+  validateSearch: (search: Record<string, unknown>): { view?: "book" } =>
+    search["view"] === "book" ? { view: "book" } : {},
   component: BookConversation,
-  head: () => ({ meta: [{ title: "Develop your book — Storymatic" }] }),
+  head: ({ search }) => {
+    const title = search.view === "book" ? "Your developing book — Storymatic" : "Develop your book — Storymatic";
+    const description = search.view === "book" ? "Explore the directions, people and open possibilities you have kept in your book." : "Develop your book in conversation with Storymatic, one idea at a time.";
+    return { meta: [{ title }, { name: "description", content: description }, { property: "og:title", content: title }, { property: "og:description", content: description }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] };
+  },
 });
 
 function BookConversation() {
   const { projectId } = Route.useParams();
+  const { view } = Route.useSearch();
   const client = useQueryClient();
   const get = useServerFn(getBookEngine);
   const send = useServerFn(sendBookMessage);
@@ -84,8 +94,8 @@ function BookConversation() {
     },
   });
   useEffect(() => {
-    end.current?.scrollIntoView({ behavior: "auto", block: "end" });
-  }, [state?.turns.length]);
+    if (view !== "book" && state?.turns.length) end.current?.scrollIntoView({ behavior: "auto", block: "end" });
+  }, [state?.turns.length, view]);
   const processing = state?.turns.some(
     (turn) => turn.status === "processing" && now - Date.parse(turn.startedAt) < 120000,
   );
@@ -101,6 +111,19 @@ function BookConversation() {
         : { requestId: crypto.randomUUID(), message: text.trim() };
     pendingMessage.current = request;
     sendMutation.mutate(request);
+  };
+  const undoLast = () => {
+    if (!latestChange || !state) return;
+    operation.mutate(() => undo({ data: { projectId, revision: state.revision, changeId: latestChange.id } }));
+  };
+  const exportMemory = () => {
+    if (!book.data) return;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(book.data, null, 2)], { type: "application/json" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "storymatic-book-memory.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
   };
 
   if (book.isLoading)
@@ -118,45 +141,24 @@ function BookConversation() {
     );
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="flex flex-wrap items-center gap-4 border-b px-6 py-4">
-        <Link to="/studio" className="font-serif text-lg">
-          Storymatic
-        </Link>
-        <h1 className="min-w-0 flex-1 truncate text-sm">{book.data.project.title}</h1>
-        <Link
-          to="/p/$projectId"
-          params={{ projectId }}
-          className="text-sm underline underline-offset-4"
-        >
-          Open manuscript
-        </Link>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            const url = URL.createObjectURL(
-              new Blob([JSON.stringify(book.data, null, 2)], { type: "application/json" }),
-            );
-            const anchor = document.createElement("a");
-            anchor.href = url;
-            anchor.download = "storymatic-book-memory.json";
-            anchor.click();
-            URL.revokeObjectURL(url);
-          }}
-        >
-          Export memory
-        </Button>
-      </header>
-      <div className="grid flex-1 lg:grid-cols-[minmax(0,3fr)_minmax(300px,2fr)]">
-        <main className="mx-auto w-full max-w-3xl space-y-6 px-6 py-8">
+    <ProjectShell projectId={projectId} projectTitle={book.data.project.title} mode={view === "book" ? "book" : "develop"} onExport={exportMemory} status={<span className="text-xs text-muted-foreground" role="status">{busy ? "Working…" : adopting ? "Scene addition needs finishing" : "Saved"}</span>}>
+      {view === "book" ? <div className="min-h-0 flex-1 overflow-y-auto"><BookMemory state={state} projectId={projectId} onUndo={undoLast} undoDisabled={busy || Boolean(adopting)} />{error && <p role="alert" className="mx-auto max-w-5xl px-8 pb-6 text-sm text-destructive">{error}</p>}</div> : <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,3fr)_minmax(290px,1fr)]">
+        <main className="mx-auto w-full max-w-3xl space-y-8 px-5 py-8 sm:px-8 sm:py-12">
           <div>
-            <h2 className="font-serif text-3xl">Let’s develop your book.</h2>
+            <p className="text-xs font-semibold uppercase text-muted-foreground">Develop</p>
+            <h1 className="mt-2 font-serif text-4xl">Let’s develop your book.</h1>
             <p className="mt-2 text-sm text-muted-foreground">
               Bring fragments, a scene you can imagine, a contradiction, or an ending you haven’t
               decided. We can start there.
             </p>
           </div>
+          {state.turns.length === 0 && <section className="space-y-5 border-t border-border pt-8" aria-label="Ways to begin">
+            <p className="font-serif text-xl leading-relaxed">Tell me the story as it exists in your head. Fragments, contradictions and half-made decisions are welcome.</p>
+            <div className="flex flex-wrap gap-2">
+              {["I have a story about…", "I can see one scene clearly…", "I know the ending, but not how we arrive there…"].map((example) => <Button key={example} variant="outline" size="sm" onClick={() => { setText(example.replace("…", "")); document.getElementById("book-message")?.focus(); }}>{example}</Button>)}
+            </div>
+          </section>}
+          <div className="lg:hidden"><Sheet><SheetTrigger asChild><Button variant="outline" size="sm">Book at a glance</Button></SheetTrigger><SheetContent side="right" className="w-[min(90vw,370px)] overflow-y-auto p-6"><SheetHeader><SheetTitle className="sr-only">Book at a glance</SheetTitle></SheetHeader><BookAtGlance state={state} projectId={projectId} onUndo={undoLast} undoDisabled={busy || Boolean(adopting)} /></SheetContent></Sheet></div>
           <div className="space-y-8" aria-label="Book conversation">
             {state.turns.map((turn) => {
               const pending = turn.proposals.filter((proposal) => proposal.status === "pending");
@@ -164,14 +166,14 @@ function BookConversation() {
                 turn.status === "processing" && now - Date.parse(turn.startedAt) >= 120000;
               return (
                 <article key={turn.id} id={`turn-${turn.id}`} className="space-y-4">
-                  <div className="rounded-md bg-secondary p-4">
+                   <div className="border-l-2 border-border bg-secondary/40 px-4 py-3">
                     <p className="mb-2 text-xs font-semibold">You</p>
                     <p className="whitespace-pre-wrap text-sm leading-relaxed">{turn.text}</p>
                   </div>
                   {turn.answer && (
                     <div>
                       <p className="mb-2 text-xs font-semibold">Storymatic</p>
-                      <p className="whitespace-pre-wrap leading-relaxed">{turn.answer}</p>
+                       <p className="whitespace-pre-wrap font-serif text-lg leading-relaxed">{turn.answer}</p>
                     </div>
                   )}
                   {turn.status === "processing" && !expired && (
@@ -181,7 +183,7 @@ function BookConversation() {
                   )}
                   {(turn.status === "failed" || expired) && (
                     <div role="status" className="space-y-2 text-sm">
-                      <p>{turn.error ?? "The response was interrupted. Your message is saved."}</p>
+                       <p>{turn.error ?? "The response was interrupted."} Your message is saved.</p>
                       <Button
                         variant="outline"
                         disabled={busy || adopting}
@@ -194,8 +196,8 @@ function BookConversation() {
                     </div>
                   )}
                   {turn.proposals.length > 0 && (
-                    <section
-                      className="space-y-3 rounded-md border p-4"
+                     <section
+                       className="space-y-3 border-l-2 border-primary/40 pl-4"
                       aria-label="Proposed book changes"
                     >
                       <h3 className="font-medium">Proposed book changes</h3>
@@ -212,7 +214,7 @@ function BookConversation() {
                               {proposal.commitment === "tentative"
                                 ? "Open possibility"
                                 : "Intended"}{" "}
-                              · {proposal.status}
+                               · {proposal.origin === "author" ? "From your words" : "Storymatic suggestion"} · {proposal.status === "pending" ? "Proposed" : proposal.status === "adopted" ? "Kept in book" : proposal.status === "dismissed" ? "Set aside" : "Undone"}
                             </span>
                           </summary>
                           <p className="mt-3 whitespace-pre-wrap text-sm">{proposal.body}</p>
@@ -294,12 +296,12 @@ function BookConversation() {
                       className="space-y-3 rounded-md border p-4"
                       aria-label="Proposed scene"
                     >
-                      <h3 className="font-serif text-xl">{turn.draft.title}</h3>
-                      <p className="text-xs text-muted-foreground">
+                       <p className="text-xs font-medium text-primary">
                         {turn.draft.status === "adopted"
                           ? "Added to manuscript"
-                          : "Scene proposal — outside your manuscript"}
+                           : "Scene proposal — outside the manuscript"}
                       </p>
+                       <h3 className="font-serif text-2xl">{turn.draft.title}</h3>
                       <details>
                         <summary className="cursor-pointer text-sm">
                           Scene direction and review notes
@@ -321,7 +323,7 @@ function BookConversation() {
                           search={{ scene: turn.draft.id }}
                           className="text-sm underline"
                         >
-                          Open this scene
+                           Open scene in manuscript
                         </Link>
                       ) : (
                         <Button
@@ -343,14 +345,14 @@ function BookConversation() {
                         >
                           {turn.draft.status === "adopting"
                             ? "Finish adding scene"
-                            : "Add as a new chapter and scene"}
+                             : "Add to manuscript"}
                         </Button>
                       )}
+                       {turn.draft.status === "proposed" && turn.draft.sourceBookVersion === state.bookVersion && <p className="text-xs text-muted-foreground">Adds a new chapter and scene. You can edit the prose there afterward.</p>}
                       {turn.draft.status === "proposed" &&
                         turn.draft.sourceBookVersion !== state.bookVersion && (
                           <p className="text-xs text-muted-foreground">
-                            Book direction changed since this draft. Ask Storymatic for an updated
-                            version before adopting it.
+                             The book direction changed after this draft was written. Ask Storymatic to revise it using the current book.
                           </p>
                         )}
                     </section>
@@ -375,9 +377,10 @@ function BookConversation() {
               value={text}
               maxLength={30000}
               onChange={(event) => setText(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); submit(); } }}
               disabled={sendMutation.isPending}
               className="min-h-36"
-              placeholder="I have a story about…"
+              placeholder="Tell me the story as it exists in your head…"
             />
             {error && (
               <p role="alert" className="text-sm text-destructive">
@@ -394,67 +397,8 @@ function BookConversation() {
             </div>
           </form>
         </main>
-        <aside
-          className="space-y-6 border-t bg-card/40 p-6 lg:border-t-0 lg:border-l"
-          aria-label="Your developing book"
-        >
-          <div>
-            <h2 className="font-serif text-2xl">Your developing book</h2>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Private working intentions, not claims about what a reader already knows.
-            </p>
-          </div>
-          {state.items.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              As we talk, proposed foundations appear beside the conversation. Keep what fits; the
-              book takes shape here.
-            </p>
-          )}
-          {itemKinds.map((kind) => {
-            const items = state.items.filter((item) => item.kind === kind);
-            return items.length ? (
-              <section key={kind} className="space-y-3">
-                <h3 className="text-sm font-semibold">{itemKindLabels[kind]}</h3>
-                {items.map((item) => (
-                  <details
-                    key={item.id}
-                    open={kind === "brief"}
-                    className="rounded-md border bg-card p-3"
-                  >
-                    <summary className="cursor-pointer text-sm">{item.title}</summary>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {item.commitment === "tentative" ? "Open possibility" : "Intended"} ·{" "}
-                      {item.origin === "author" ? "From your words" : "An adopted suggestion"}
-                    </p>
-                    <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">{item.body}</p>
-                    <a
-                      className="mt-3 inline-block text-xs underline"
-                      href={`#turn-${item.sourceTurnId}`}
-                    >
-                      Original conversation
-                    </a>
-                  </details>
-                ))}
-              </section>
-            ) : null;
-          })}
-          {latestChange && (
-            <Button
-              variant="outline"
-              disabled={busy || adopting}
-              onClick={() =>
-                operation.mutate(() =>
-                  undo({
-                    data: { projectId, revision: state.revision, changeId: latestChange.id },
-                  }),
-                )
-              }
-            >
-              Undo last book change
-            </Button>
-          )}
-        </aside>
-      </div>
-    </div>
+        <aside className="hidden border-l border-border bg-secondary/20 p-6 lg:block" aria-label="Book at a glance"><div className="sticky top-6 max-h-[calc(100vh-10rem)] overflow-y-auto"><BookAtGlance state={state} projectId={projectId} onUndo={undoLast} undoDisabled={busy || Boolean(adopting)} /></div></aside>
+      </div>}
+    </ProjectShell>
   );
 }

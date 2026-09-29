@@ -29,6 +29,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { OutlineSidebar, type OutlineActions } from "@/components/studio/outline-sidebar";
+import { ProjectShell } from "@/components/studio/project-shell";
 import {
   ContextPanel,
   type PanelView,
@@ -178,6 +179,8 @@ export const Route = createFileRoute("/_authenticated/p/$projectId")({
       { title: "Writing room — Storymatic" },
       { name: "description", content: "Draft your manuscript in a calm, focused writing room." },
       { property: "og:title", content: "Writing room — Storymatic" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Draft your manuscript in a calm, focused writing room.",
@@ -1241,7 +1244,8 @@ function Workspace() {
   const wordCount = liveWordCount ?? scene.data?.word_count ?? 0;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <ProjectShell projectId={projectId} projectTitle={data.project.title} mode="manuscript" onExport={actions.exportProject} status={<SaveIndicator status={autosave.status} lastSavedAt={autosave.lastSavedAt} onRetry={autosave.retry} />}>
+    <div className="flex min-h-0 flex-1 overflow-hidden bg-background">
       {sidebarOpen && !focusMode && (
         <OutlineSidebar
           projects={projects.data ?? []}
@@ -1305,12 +1309,6 @@ function Workspace() {
               />
             )}
           </div>
-
-          <SaveIndicator
-            status={autosave.status}
-            lastSavedAt={autosave.lastSavedAt}
-            onRetry={autosave.retry}
-          />
 
           <span className="hidden text-xs text-muted-foreground sm:inline">{wordCount} words</span>
 
