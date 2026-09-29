@@ -318,7 +318,8 @@ function Workspace() {
 
   const workspace = useQuery({
     queryKey: ["workspace", projectId],
-    queryFn: () => fetchWorkspace({ data: { projectId } }),
+    queryFn: () => { if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) throw new Error("Project not found"); return fetchWorkspace({ data: { projectId } }); },
+    retry: (count, err) => err.message !== "Project not found" && count < 2,
   });
   const projects = useQuery({ queryKey: ["projects"], queryFn: () => fetchProjects() });
 

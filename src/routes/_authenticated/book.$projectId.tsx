@@ -35,8 +35,9 @@ function BookConversation() {
   const queryKey = ["book-engine", projectId];
   const book = useQuery({
     queryKey,
-    queryFn: () => get({ data: { projectId } }),
-    refetchInterval: 3000,
+    queryFn: () => { if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) throw new Error("Project not found"); return get({ data: { projectId } }); },
+    retry: (count, err) => err.message !== "Project not found" && count < 2,
+    refetchInterval: (q) => (q.state.status === "error" ? false : 3000),
   });
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
