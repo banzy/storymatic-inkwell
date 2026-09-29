@@ -319,12 +319,15 @@ export function OutlineSidebar(props: {
         </button>
 
         <h2 className="mt-5 px-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          Story
+          Evidence and analysis
         </h2>
+        <p className="px-2 pt-1 pb-2 text-xs leading-relaxed text-muted-foreground">
+          Manuscript-derived legacy views. They are not synchronized with Book.
+        </p>
         <ul className="mt-1 space-y-0.5">
           {(
             [
-              { view: "story" as PanelView, label: "Story", icon: Compass },
+              { view: "story" as PanelView, label: "Manuscript insights", icon: Compass },
               { view: "characters" as PanelView, label: "Characters", icon: Users },
               { view: "director" as PanelView, label: "Director", icon: Pencil },
               { view: "possibilities" as PanelView, label: "Possibilities", icon: Compass },

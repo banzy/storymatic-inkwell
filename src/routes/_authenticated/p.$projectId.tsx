@@ -220,7 +220,6 @@ function SaveIndicator(props: {
         </span>
       )}
     </div>
-    </ProjectShell>
   );
 }
 
@@ -1414,7 +1413,7 @@ function Workspace() {
               setStoryOpen(true);
             }}
           >
-            Story
+            Evidence and analysis
           </Button>
 
 
@@ -1427,7 +1426,7 @@ function Workspace() {
             }}
           >
             <Sparkles className="size-4" aria-hidden="true" />
-            Assist
+            Ask about scene
           </Button>
 
           {activeSceneId && (
@@ -1437,7 +1436,7 @@ function Workspace() {
               disabled={proposalLoading}
               onClick={() => void requestProposal("continue")}
             >
-              Continue this scene
+              Continue scene
             </Button>
           )}
 
@@ -2352,5 +2351,6 @@ function Workspace() {
         />
       )}
     </div>
+    </ProjectShell>
   );
 }
