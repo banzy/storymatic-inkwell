@@ -20,11 +20,7 @@ export const Route = createFileRoute("/_authenticated/book/$projectId")({
   validateSearch: (search: Record<string, unknown>): { view?: "book" } =>
     search["view"] === "book" ? { view: "book" } : {},
   component: BookConversation,
-  head: ({ search }) => {
-    const title = search.view === "book" ? "Your developing book — Storymatic" : "Develop your book — Storymatic";
-    const description = search.view === "book" ? "Explore the directions, people and open possibilities you have kept in your book." : "Develop your book in conversation with Storymatic, one idea at a time.";
-    return { meta: [{ title }, { name: "description", content: description }, { property: "og:title", content: title }, { property: "og:description", content: description }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] };
-  },
+  head: () => ({ meta: [{ title: "Develop and shape your book — Storymatic" }, { name: "description", content: "Develop your book in conversation and explore the directions, people and possibilities you keep." }, { property: "og:title", content: "Develop and shape your book — Storymatic" }, { property: "og:description", content: "Develop your book in conversation and explore the directions, people and possibilities you keep." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
 });
 
 function BookConversation() {
@@ -143,7 +139,7 @@ function BookConversation() {
   return (
     <ProjectShell projectId={projectId} projectTitle={book.data.project.title} mode={view === "book" ? "book" : "develop"} onExport={exportMemory} status={<span className="text-xs text-muted-foreground" role="status">{busy ? "Working…" : adopting ? "Scene addition needs finishing" : "Saved"}</span>}>
       {view === "book" ? <div className="min-h-0 flex-1 overflow-y-auto"><BookMemory state={state} projectId={projectId} onUndo={undoLast} undoDisabled={busy || Boolean(adopting)} />{error && <p role="alert" className="mx-auto max-w-5xl px-8 pb-6 text-sm text-destructive">{error}</p>}</div> : <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,3fr)_minmax(290px,1fr)]">
-        <main className="mx-auto w-full max-w-3xl space-y-8 px-5 py-8 sm:px-8 sm:py-12">
+        <main className="mx-auto w-full max-w-3xl space-y-8 overflow-y-auto px-5 py-8 sm:px-8 sm:py-12">
           <div>
             <p className="text-xs font-semibold uppercase text-muted-foreground">Develop</p>
             <h1 className="mt-2 font-serif text-4xl">Let’s develop your book.</h1>
@@ -269,26 +265,6 @@ function BookConversation() {
                           )}
                         </details>
                       ))}
-                      {pending.length > 1 && (
-                        <Button
-                          disabled={busy || adopting}
-                          onClick={() =>
-                            operation.mutate(() =>
-                              review({
-                                data: {
-                                  projectId,
-                                  revision: state.revision,
-                                  turnId: turn.id,
-                                  ids: pending.map((p) => p.id),
-                                  action: "adopt",
-                                },
-                              }),
-                            )
-                          }
-                        >
-                          Keep all {pending.length} changes
-                        </Button>
-                      )}
                     </section>
                   )}
                   {turn.draft && (
