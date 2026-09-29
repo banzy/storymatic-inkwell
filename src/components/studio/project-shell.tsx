@@ -20,7 +20,7 @@ export function ProjectShell({ projectId, projectTitle, mode, children, onExport
   const projects = useQuery({ queryKey: ["projects"], queryFn: () => fetchProjects() });
   const linkClass = (active: boolean) => `inline-flex h-9 items-center justify-center border-b-2 px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-primary ${active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`;
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
+    <div className="flex h-screen min-h-0 min-w-0 flex-col bg-background">
       <header className="shrink-0 border-b border-border bg-background">
         <div className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-1 px-3 sm:px-5">
           <Link to="/studio" className="font-serif text-lg text-foreground hover:text-primary">Storymatic</Link>

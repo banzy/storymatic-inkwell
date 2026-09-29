@@ -24,6 +24,8 @@ export const Route = createFileRoute("/_authenticated/studio")({
       { title: "Your projects — Storymatic" },
       { name: "description", content: "Open a manuscript, start a new project, or import a draft." },
       { property: "og:title", content: "Your projects — Storymatic" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Open a manuscript, start a new project, or import a draft.",
@@ -128,7 +130,7 @@ function StudioHome() {
         )}
         {projects.data?.length === 0 && (
           <p className="rounded-md border border-dashed border-border p-6 text-sm text-muted-foreground">
-            Nothing here yet. Start an empty project, open the sample manuscript, or import a draft.
+            Nothing here yet. Start a book, open the sample manuscript, or import a draft.
           </p>
         )}
         {projects.data?.map((project) => (
@@ -137,7 +139,7 @@ function StudioHome() {
             className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-4 py-3"
           >
             <Link
-              to="/p/$projectId"
+               to="/book/$projectId"
               params={{ projectId: project.id }}
               className="min-w-0 flex-1 rounded-sm"
             >
@@ -148,10 +150,12 @@ function StudioHome() {
                 </span>
               )}
               <span className="mt-0.5 block text-xs text-muted-foreground">
-                {project.genre ?? "No genre set"} · edited{" "}
-                {new Date(project.updated_at).toLocaleDateString()}
+                 Edited {new Date(project.updated_at).toLocaleDateString()}
               </span>
             </Link>
+             <Button variant="ghost" size="sm" asChild>
+               <Link to="/p/$projectId" params={{ projectId: project.id }}>Manuscript</Link>
+             </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -167,10 +171,10 @@ function StudioHome() {
       <div className="mt-10 grid gap-6 sm:grid-cols-2">
         <section className="rounded-lg border border-border bg-card p-5">
           <h2 className="flex items-center gap-2 text-sm font-semibold">
-            <FilePlus2 className="size-4 text-primary" aria-hidden="true" /> Start an empty project
+             <FilePlus2 className="size-4 text-primary" aria-hidden="true" /> Start a book
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            A title is all you need. Genre and creative direction can come later.
+             Start with whatever you have: a premise, an ending, a character, or one scene. You can change the title and direction later.
           </p>
           <form
             className="mt-4 space-y-3"
@@ -189,7 +193,7 @@ function StudioHome() {
               onChange={(e) => setTitle(e.target.value)}
             />
             <Button type="submit" disabled={createMutation.isPending || !title.trim()}>
-              Create project
+               Start developing
             </Button>
           </form>
         </section>
@@ -199,8 +203,7 @@ function StudioHome() {
             <BookOpen className="size-4 text-primary" aria-hidden="true" /> The City of Ashes
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            A clearly labelled sample manuscript: three scenes, one planned author direction, and a
-            few curated sample insights.
+             A sample manuscript from Storymatic’s earlier writing-room model. Its curated insights are not developing-book memory.
           </p>
           <Button
             className="mt-4"
@@ -219,6 +222,7 @@ function StudioHome() {
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Headings become scenes. Everything else becomes prose you can keep editing.
+             Importing does not analyse or develop the book for you.
           </p>
           <div className="mt-4 grid gap-3">
             <div className="grid gap-2">

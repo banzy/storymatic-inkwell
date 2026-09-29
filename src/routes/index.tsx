@@ -4,18 +4,20 @@ import { Feather, BookOpen, Compass } from "lucide-react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Storymatic V3 — a quiet writing studio for novelists" },
+      { title: "Storymatic — develop and write your book in conversation" },
       {
         name: "description",
         content:
-          "Write your novel in a calm room. Storymatic builds an evidence-based understanding of your characters, events and intentions as you draft.",
+          "Bring fragments, scenes, endings and contradictions. Storymatic helps shape them into a book and writes with you when asked.",
       },
-      { property: "og:title", content: "Storymatic V3 — a quiet writing studio for novelists" },
+      { property: "og:title", content: "Storymatic — develop and write your book in conversation" },
       {
         property: "og:description",
         content:
-          "A writing room connected to a grounded understanding of your story. You decide what becomes part of the book.",
+          "Explain the story in your head, shape what belongs in the book, and move together into an editable manuscript.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Landing,
@@ -37,15 +39,14 @@ function Landing() {
       </header>
 
       <section className="mx-auto max-w-3xl px-6 pt-16 pb-10">
-        <p className="text-sm tracking-wide text-muted-foreground uppercase">The writing room</p>
+         <p className="text-sm tracking-wide text-muted-foreground uppercase">Your book, developed in conversation</p>
         <h1 className="mt-4 font-serif text-4xl leading-tight tracking-tight text-balance sm:text-5xl">
-          Write the novel. Let the understanding of it keep up with you.
+           Tell Storymatic the story in your head. Shape it into a book together.
         </h1>
         <p className="mt-6 max-w-2xl font-serif text-lg leading-relaxed text-muted-foreground">
-          Storymatic is a calm place to draft, with a grounded reading of your manuscript beside it —
-          who knows what, when, and where you first suggested it. Every observation points back to
-          the passage it came from. You stay the author: contradict the plan, keep the ambiguity,
-          break the advice.
+           Bring fragments, scenes, endings, inspirations and contradictions. Storymatic helps turn
+           them into a coherent book, writes with you when asked, and remembers what you decide as
+           the manuscript grows. You remain the creative director.
         </p>
         <div className="mt-9 flex flex-wrap gap-3">
           <Link
@@ -53,7 +54,7 @@ function Landing() {
             className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <Feather className="size-4" aria-hidden="true" />
-            Start writing
+             Start a book
           </Link>
           <Link
             to="/studio"
@@ -70,18 +71,18 @@ function Landing() {
         {[
           {
             icon: Feather,
-            title: "Quiet Room",
-            body: "One column of serif prose, adjustable type, focus mode, autosave you can trust, and revisions you can restore.",
+             title: "Begin with conversation",
+             body: "No forms or complete outline required. Start with the fragments, scenes or ending already in your head.",
           },
           {
             icon: BookOpen,
-            title: "Story Brain",
-            body: "Characters, events and threads assembled from what the manuscript actually says — with the passage attached.",
+             title: "See the book take shape",
+             body: "Brief, people, plots, questions and private intentions remain organized and traceable to your conversation.",
           },
           {
             icon: Compass,
-            title: "Your direction",
-            body: "Unwritten plans stay visibly separate from what is established in the draft. Nothing becomes canon without you.",
+             title: "Write together",
+             body: "Move from direction to a proposed scene, then add it to the editable manuscript with revision history intact.",
           },
         ].map((item) => (
           <article key={item.title} className="rounded-lg border border-border bg-card p-5">
