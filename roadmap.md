@@ -103,3 +103,4 @@ Write · Outline · Story (Synopsis, Scenes, Plot, Timeline, Themes) · Characte
 - [ ] Pass 3: Book organized from adopted engine items; legacy insights secondary.
 - [ ] Pass 4: studio and landing copy, project entry paths.
 - [ ] Pass 5: responsive/accessibility and behavior verification.
+- [ ] Credit checkpoint: stop after five credits of resumed work and ask before continuing.
