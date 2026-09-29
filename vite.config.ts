@@ -4,6 +4,7 @@
 //     nitro (build-only using cloudflare as a default target), VITE_* env injection, @ path alias,
 //     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
@@ -14,5 +15,10 @@ export default defineConfig({
   },
   nitro: {
     preset: "node-server",
+    // tr46 (via the database driver) requires "punycode/" — the userland package.
+    // Point it at the real package instead of the runtime's built-in stub.
+    alias: {
+      "punycode/": fileURLToPath(new URL("./node_modules/punycode/punycode.js", import.meta.url)),
+    },
   },
 });
